@@ -182,6 +182,14 @@ else
 MODEL = $(subst -,,$(subst +,P,$(BUILD_NAME)))
 endif
 endif
+ifeq ($(MODEL),RTK3)
+export RTK3=y
+export CFLAGS += -DRTK3
+MODEL:=RTAC3100
+export FILE_NAME:=RT-AC3100
+else
+export FILE_NAME:=$(BUILD_NAME)
+endif
 ifneq ($(MODEL),)
 export MODEL
 export CFLAGS += -D$(MODEL)
@@ -224,10 +232,15 @@ mips_rev =
 KERN_SIZE_OPT ?= y
 endif
 
-ifeq ($(FAKEID),y)
-export IMGNAME := $(BUILD_NAME)_$(FORCE_SN)_$(SWPJVER)$(FORCE_EN)$(BUILDREV)
+ifeq ($(RTK3)$(ROMCFE),yy)
+	export SUFFIX := _cfe
 else
-export IMGNAME := $(BUILD_NAME)_$(SERIALNO)_$(SWPJVER)$(EXTENDNO)$(BUILDREV)
+	export SUFFIX :=
+endif
+ifeq ($(FAKEID),y)
+export IMGNAME := $(BUILD_NAME)_$(FORCE_SN)_$(SWPJVER)$(FORCE_EN)$(BUILDREV)$(SUFFIX)
+else
+export IMGNAME := $(BUILD_NAME)_$(SERIALNO)_$(SWPJVER)$(EXTENDNO)$(BUILDREV)$(SUFFIX)
 endif
 
 ifeq ($(BUILD_NAME),DSL-AC68U)
@@ -400,7 +413,11 @@ endif
 	@echo '#define RT_EXTENDNO "$(EXTENDNO)$(BUILDREV)"' >> router/shared/version.h
 endif
 	@echo '#define RT_SWPJVERNO "$(SWPJVERNO)"' >> router/shared/version.h
+ifeq ($(RTK3),y)
+	@echo '#define RT_BUILD_NAME "RT-AC3100"' >> router/shared/version.h
+else
 	@echo '#define RT_BUILD_NAME "$(BUILD_NAME)"' >> router/shared/version.h
+endif
 	@echo '#define RT_BUILD_INFO "$(BUILD_TIME) $(BUILD_USER)@$(BUILD_INFO)"' >> router/shared/version.h
 	@echo '#endif' >> router/shared/version.h
 ifneq ($(NVRAM_ENCRYPT),$(filter $(NVRAM_ENCRYPT),n))
@@ -412,7 +429,11 @@ else
 endif
 	@echo '#endif' >> router/shared/version.h
 endif
+ifeq ($(RTK3),y)
+	@echo 'RT-AC3100 $(SERIALNO)_$(EXTENDNO)$(BUILDREV) $(BUILD_TIME)' > router/shared/version
+else
 	@echo '$(BUILD_NAME) $(SERIALNO)_$(EXTENDNO)$(BUILDREV) $(BUILD_TIME)' > router/shared/version
+endif
 	@echo 'EXTENDNO=$(EXTENDNO)$(BUILDREV)' > router/extendno.conf
 
 rt_ver_ntools:
@@ -435,8 +456,13 @@ ifeq ($(RTCONFIG_REALTEK),y)
 	@echo "" > $(SRCBASE)/build.log
 endif
 	echo ""
-	echo "Building $(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO).trx"
+	echo "Building $(IMGNAME)"
 	echo ""
+	echo ""
+ifeq ($(ROMCFE),y)
+	@$(MAKE) -C cfe clean
+	@$(MAKE) -C cfe
+endif
 ifeq ($(HND_ROUTER),y)
 	@rm -rf image
 	@ln -sf targets/94908HND image
@@ -499,7 +525,12 @@ image:
 		exit 1; \
 	fi
 
-	@rm -f image/$(BUILD_NAME)_$(KERNEL_VER).$(FS_VER)_$(SERIALNO).trx
+	@echo "-------- clean old trx --------"
+ifeq ($(FAKEID),y)
+	rm -f image/$(BUILD_NAME)_$(FORCE_SN)_$(SWPJVER)$(FORCE_EN)$(BUILDREV)*.trx
+else
+	rm -f image/$(BUILD_NAME)_$(SERIALNO)_$(SWPJVER)$(EXTENDNO)$(BUILDREV)*.trx
+endif
 ifeq ($(RTCONFIG_REALTEK),y)
 	@$(MAKE) rtk_clean_img
 	@$(MAKE) rtk_img_tool
@@ -726,9 +757,9 @@ else
 endif
 ifneq ($(CONFIG_BCMWL5),)
 ifeq ($(FAKEHDR),y)
-	ctools/trx_asus -i image/linux-lzma.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),$(FORCE_SN),$(FORCE_EN),image/$(IMGNAME).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r $(FILE_NAME),$(KERNEL_VER).$(FS_VER),$(FORCE_SN),$(FORCE_EN),image/$(IMGNAME).trx
 else
-	ctools/trx_asus -i image/linux-lzma.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),$(SERIALNO),$(EXTENDNO),image/$(IMGNAME).trx
+	ctools/trx_asus -i image/linux-lzma.trx -r $(FILE_NAME),$(KERNEL_VER).$(FS_VER),$(SERIALNO),$(EXTENDNO),image/$(IMGNAME).trx
 endif
 else
 	ctools/trx_asus -i image/linux-lzma.trx -r $(BUILD_NAME),$(KERNEL_VER).$(FS_VER),image/$(IMGNAME).trx
@@ -2918,6 +2949,9 @@ define RouterOptions
 	if [ -n "$(CAPTCHA)" ]; then \
 		sed -i "/RTCONFIG_CAPTCHA/d" $(1); \
 		echo "RTCONFIG_CAPTCHA=y" >>$(1); \
+	if [ "$(SOFTCENTER)" = "y" ]; then \
+	sed -i "/RTCONFIG_SOFTCENTER/d" $(1); \
+	echo "RTCONFIG_SOFTCENTER=y" >>$(1); \
 	fi; \
 	)
 	$(call platformRouterOptions, $(1))

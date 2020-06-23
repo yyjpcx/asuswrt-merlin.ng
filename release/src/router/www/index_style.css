@@ -881,6 +881,9 @@ width:122px;
 	background: url(images/New_ui/open_NAT.svg);
 	background-size: 100%;
 	background-repeat: no-repeat;
+.menu_Softcenter{
+	background: url(images/New_ui/softcenter.png);
+	background-position: 0px 0px;
 }
 .menuClicked{
 	background: #8AA6BE; /* Old browsers */

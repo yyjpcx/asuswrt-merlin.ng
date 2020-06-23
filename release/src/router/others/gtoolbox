@@ -1,0 +1,121 @@
+#!/bin/sh
+####################################################################
+get_mac() {
+	MAC_LAN=`envram get et0macaddr`
+	MAC_2G=`envram get 1:macaddr`
+	MAC_5G=`envram get 2:macaddr`
+}
+
+get_wl_driver() {
+	WL_DRIVER=`lsmod | grep dpsta | awk '{print $4}'`
+}
+
+ops() {
+	echo "${x} - 选项无效"; sleep 1
+}
+
+fix_timeout() {
+	envram unset screen_timeout
+	envram commit
+}
+
+mod_lanmac() {
+	echo "LAN MAC: $MAC_LAN"
+	read -p "MAC(留空不修改):" maclan
+	if [ -n "$maclan" ]; then
+		`envram set 'et0macaddr'="$maclan"`
+		envram commit
+	fi
+}
+
+mod_2gmac() {
+	echo "2.4G MAC: $MAC_2G"
+	read -p "MAC(留空不修改):" mac2g
+	if [ -n "$mac2g" ]; then
+		`envram set '1:macaddr'="$mac2g"`
+		envram commit
+	fi
+}
+
+mod_5gmac() {
+	echo "2.4G MAC: $MAC_5G"
+	read -p "MAC(留空不修改):" mac5g
+	if [ -n "$mac5g" ]; then
+		`envram set '2:macaddr'="$mac5g"`
+		envram commit
+	fi
+}
+
+wl_dhd() {
+	if [ "dhd" = $WL_DRIVER ]; then
+		echo "当前驱动为dhd，无需更换。"
+		return
+	fi
+	envram set 'chiprev'='0x4'
+	envram commit
+	nvram set 'chiprev'='0x4'
+	rmmod dhd24
+	modprobe dhd
+	echo "已更换无线驱动为dhd"
+}
+
+wl_dhd24() {
+	if [ "dhd24" = $WL_DRIVER ]; then
+		echo "当前驱动为dhd24，无需更换。"
+		return
+	fi
+	envram set 'chiprev'='0x3'
+	envram commit
+	nvram set 'chiprev'='0x3'
+	rmmod dhd
+	modprobe dhd24
+	echo "已更换无线驱动为dhd24"
+}
+####################################################################
+
+/usr/sbin/envrams >/dev/null
+sleep 1
+while true
+do
+	get_mac
+	get_wl_driver
+	clear
+	echo "#########################"
+	echo "       GTOOL工具箱"
+	echo "#########################"
+	echo "修改MAC重启后生效"
+	echo "LAN  - $MAC_LAN"
+	echo "2.4G - $MAC_2G"
+	echo "5G   - $MAC_5G"
+	echo "-------------------------"
+	echo "无线驱动 - ${WL_DRIVER}.ko"
+	echo "#########################"
+	echo "1) 修复屏幕超时保存"
+	echo "2) 修改LAN MAC"
+	echo "3) 修改2.4G MAC"
+	echo "4) 修改5G MAC"
+	echo "5) 无线驱动更换成dhd24.ko"
+	echo "6) 无线驱动更换成dhd.ko"
+	echo "q) 退出"
+	echo
+	read -n 1 -p "Choice: " x
+	echo
+	case ${x} in
+    1)
+		fix_timeout;sleep 1;;
+    2)
+		mod_lanmac;sleep 1;;
+    3)
+		mod_2gmac;sleep 1;;
+    4)
+		mod_5gmac;sleep 1;;
+    5)
+		wl_dhd24;sleep 1;;
+    6)
+		wl_dhd;sleep 1;;
+    q)
+		killall -9 envrams; echo; exit;;
+    *)
+		ops;;
+	esac
+done
