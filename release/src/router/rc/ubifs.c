@@ -32,6 +32,14 @@
 #define NUM_OH_LEB	24		/* for ubifs overhead */
 #endif
 
+#ifdef RTK3
+#define JFFS2_MTD_NAME	"brcmnand"
+#define UBI_DEV_NUM	"0"
+#define UBI_DEV_PATH	"/dev/ubi0"
+#define LEBS		0x1F000		/* 124 KiB */
+#define NUM_OH_LEB	24		/* for ubifs overhead */
+#endif
+
 static void error(const char *message)
 {
 	char s[512];
@@ -113,6 +121,11 @@ static inline int ubifs_erase(int dev, int part)
 
 void start_ubifs(void)
 {
+	if (!nvram_match("jffs2_enable", "1")) {
+		notice_set("jffs", "");
+		return;
+	}
+
 	int format = 0;
 	char s[256];
 	int dev, part, size;
@@ -121,7 +134,7 @@ void start_ubifs(void)
 #if defined(RTCONFIG_TEST_BOARDDATA_FILE)
 	int r;
 #endif
-#ifdef RTCONFIG_MTK_NAND
+#if defined(RTCONFIG_MTK_NAND) || defined(RTK3)
 	int mtd_part = 0, mtd_size = 0;
 	char dev_mtd[] = "/dev/mtdXXX";
 #endif
@@ -139,7 +152,8 @@ void start_ubifs(void)
 		return;
 #endif
 
-#ifdef RTCONFIG_MTK_NAND
+#ifndef RTCONFIG_NVRAM_FILE
+#if defined(RTCONFIG_MTK_NAND) || defined(RTK3)
 	if (!mtd_getinfo(JFFS2_MTD_NAME, &mtd_part, &mtd_size)) return;
 
 	_dprintf("*** ubifs: %s (%d, %d)\n", UBIFS_VOL_NAME, mtd_part, mtd_size);
@@ -151,19 +165,26 @@ void start_ubifs(void)
 		eval("ubiattach", "-p", dev_mtd, "-d", UBI_DEV_NUM);
 	}
 
+	unsigned int num_leb = 0, num_avail_leb = 0, vol_size = 0;
+	num_leb = mtd_size >> 17;			/* compute number of leb divde by 128KiB */
 	if (ubi_getinfo(UBIFS_VOL_NAME, &dev, &part, &size) == 1) {	//ubi volume not found, format it and create volume
-		unsigned int num_leb = 0, num_avail_leb = 0, vol_size = 0;
-		
+
 		_dprintf("*** ubifs: ubi volume not found\n");
 
+#ifdef RTK3
+		/* format ubi */
+		snprintf(dev_mtd, sizeof(dev_mtd), "/dev/mtd%d", mtd_part);
+		_dprintf("*** ubifs: format (%s)\n", dev_mtd);
+		eval("ubiformat", "-y", dev_mtd);
+#else
 		/* mtd erase on UBIFS_VOL_NAME first */
 		if (mtd_erase(JFFS2_MTD_NAME)) {
 			error("formatting");
 			return;
 		}
+#endif
 
 		/* compute jffs2's volume size */
-		num_leb = mtd_size >> 17;			/* compute number of leb divde by 128KiB */
 		num_avail_leb = num_leb - NUM_OH_LEB;
 		vol_size = (num_avail_leb * LEBS) >> 10;	/* convert to KiB unit */
 		if (vol_size > 0) {
@@ -188,8 +209,9 @@ void start_ubifs(void)
 		return;
 
 	_dprintf("*** ubifs: %s %d, %d, %d\n", UBIFS_VOL_NAME, dev, part, size);
-	if (nvram_match("ubifs_format", "1")) {
+	if (nvram_match("ubifs_format", "1") || nvram_match("jffs2_format", "1")) {
 		nvram_set("ubifs_format", "0");
+		nvram_set("jffs2_format", "0");
 
 		if (ubifs_erase(dev, part)) {
 			error("formatting");
@@ -222,26 +244,42 @@ void start_ubifs(void)
 			error("unlocking");
 			return;
 		}
-#ifdef RTCONFIG_MTK_NAND
+#if defined(RTCONFIG_MTK_NAND) || defined(RTK3)
 		nvram_unset("ubifs_clean_fs");
 		nvram_commit_x();
 #endif
 	}
 	sprintf(s, "/dev/ubi%d_%d", dev, part);
 
-	if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
-		_dprintf("*** ubifs mount error\n");
-		if (ubifs_erase(dev, part)) {
-			error("formatting");
-			return;
-		}
-
-		format = 1;
+	int loop = 1;
+	while (loop <= 4)
+	{
 		if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
-			_dprintf("*** ubifs 2-nd mount error\n");
-			error("mounting");
-			return;
+			if (loop == 4) {
+				error("mounting");
+				return;
+			}
+			_dprintf("*** ubifs mount error - %d time\n", loop);
+			num_avail_leb = num_leb - (NUM_OH_LEB * loop);
+			vol_size = (num_avail_leb * LEBS) >> 10;	/* convert to KiB unit */
+			if (vol_size > 0) {
+				char vol_size_s[32] = {0};
+				snprintf(vol_size_s, sizeof(vol_size_s), "%dKiB", vol_size);
+				_dprintf("*** ubifs: mtd_part(%02x), num_leb(%d), num_avail_leb(%d), vol_size(%s)\n", mtd_part, num_leb, num_avail_leb, vol_size_s);
+				eval("ubidetach", "-p", dev_mtd);
+				eval("ubiformat", "-y", dev_mtd);
+				eval("ubiattach", "-p", dev_mtd, "-d", UBI_DEV_NUM);
+				eval("ubimkvol", UBI_DEV_PATH, "-s", vol_size_s, "-N", UBIFS_VOL_NAME);
+			}
+			if (ubifs_erase(dev, part)) {
+				error("formatting");
+				continue;
+			}
+		} else {
+			format = 1;
+			break;
 		}
+		loop++;
 	}
 
 #if defined(RTCONFIG_ISP_CUSTOMIZE)
@@ -259,14 +297,14 @@ void start_ubifs(void)
 
 	notice_set("ubifs", format ? "Formatted" : "Loaded");
 
-#if 0 /* disable legacy & asus autoexec */
+#ifndef RTCONFIG_NVRAM_FILE
 	if (((p = nvram_get("ubifs_exec")) != NULL) && (*p != 0)) {
 		chdir(UBIFS_MNT_DIR);
 		system(p);
 		chdir("/");
 	}
-	run_userfile(UBIFS_MNT_DIR, ".asusrouter", UBIFS_MNT_DIR, 3);
 #endif
+	run_userfile(UBIFS_MNT_DIR, ".asusrouter", UBIFS_MNT_DIR, 3);
 
 #if defined(RTCONFIG_TEST_BOARDDATA_FILE)
 	/* Copy /lib/firmware to /tmp/firmware, and
@@ -281,6 +319,12 @@ void start_ubifs(void)
 		_dprintf("%s: bind mount " UBIFS_MNT_DIR "/firmware fail! (r = %d)\n", __func__, r);
 #endif
 
+	if (!check_if_dir_exist("/jffs/scripts/")) mkdir("/jffs/scripts/", 0755);
+	if (!check_if_dir_exist("/jffs/configs/")) mkdir("/jffs/configs/", 0755);
+	if (!check_if_dir_exist("/jffs/addons/")) mkdir("/jffs/addons/", 0755);
+	if (!check_if_dir_exist(UPLOAD_CERT_FOLDER)) mkdir(UPLOAD_CERT_FOLDER, 0600);
+
+	adjust_jffs_content();
 }
 
 void stop_ubifs(int stop)

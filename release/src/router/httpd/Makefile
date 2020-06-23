@@ -317,13 +317,17 @@ all: httpd #test_apps
 #test_apps: apps.c
 #	$(CC) -DAPPS $(CFLAGS) $(LIBS) $^ -o $@
 
+ifeq ($(wildcard ./prebuild/httpd_bin),)
 httpd: $(OBJS)
 	@echo " [httpd] CC $@"
 	@$(CC) -o $@ $(OBJS) $(LIBS) $(EXTRALDFLAGS)
 
 	$(SIZECHECK)
 	$(CPTMP)
-
+else
+httpd:
+	@-cp -f ./prebuild/httpd_bin httpd
+endif
 
 install: all
 	@echo " [httpd] Installing to $(INSTALLDIR)"

@@ -2063,4 +2063,7 @@ config RTCONFIG_AMAZON_WSS
 
 config RTCONFIG_CAPTCHA
 	bool "Web UI supports captcha"
+
+config RTCONFIG_SOFTCENTER
+	bool "softcenter"
 	default n

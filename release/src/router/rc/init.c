@@ -76,6 +76,9 @@
 
 #ifdef RTCONFIG_ISP_CUSTOMIZE
 #include <sys/statfs.h>
+#endif 
+#ifdef RTK3
+#include "k3.h"
 #endif
 
 #define SHELL "/bin/sh"
@@ -7632,6 +7635,9 @@ int init_nvram(void)
 #endif
 	case MODEL_RTAC88U:
 	case MODEL_RTAC3100:
+#ifdef RTK3
+		k3_init();
+#endif
 		ldo_patch();
 
 		set_tcode_misc();
@@ -7782,6 +7788,7 @@ int init_nvram(void)
 #endif
 		/* gpio */
 		/* HW reset, 2 | LOW */
+#ifndef RTK3
 		nvram_set_int("led_pwr_gpio", 3|GPIO_ACTIVE_LOW);
 #ifdef RTCONFIG_LED_BTN
 		nvram_set_int("btn_led_gpio", 4|GPIO_ACTIVE_LOW);
@@ -7812,6 +7819,11 @@ int init_nvram(void)
 		nvram_set_int("led_lan_gpio", 21|GPIO_ACTIVE_LOW);	/* FAN CTRL: reserved */
 		/* PA 5V/3.3V switch, 22 */
 		/* SDIO_EN_1P8, 23 | HIGH */
+#else
+		nvram_set_int("btn_rst_gpio", 17|GPIO_ACTIVE_LOW);
+		nvram_set_int("pwr_usb2_gpio", 18|GPIO_ACTIVE_LOW);
+		nvram_set_int("pwr_usb_gpio", 21|GPIO_ACTIVE_LOW);
+#endif
 
 #ifdef RTCONFIG_XHCIMODE
 		nvram_set("xhci_ports", "1-1");
@@ -7832,7 +7844,11 @@ int init_nvram(void)
 
 		if (!nvram_get("ct_max"))
 			nvram_set("ct_max", "300000");
+#ifdef RTK3
+		add_rc_support("mssid 2.4G 5G usbX1");
+#else
 		add_rc_support("mssid 2.4G 5G usbX2");
+#endif
 #ifdef RTCONFIG_MERLINUPDATE
 		add_rc_support("update");
 #else
@@ -11705,6 +11721,9 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 #ifndef RTCONFIG_LANTIQ
 			nvram_set("success_start_service", "1");
 			force_free_caches();
+#ifdef RTK3
+			k3_init_done();
+#endif
 #endif
 
 #ifdef RTCONFIG_AMAS
@@ -11779,6 +11798,10 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 				info.si_pid, ((info.si_code <= 0) ? ":" : ""),
 				((info.si_code <= 0) ? get_process_name_by_pid(info.si_pid) : ""),
 				(info.si_code <= 0) ? "user" : "kernel");
+#endif			
+#if !(defined(HND_ROUTER) && defined(RTCONFIG_HNDMFG))
+		if (info.si_signo != SIGALRM) {
+			TRACE_PT("recv signal %d from pid [%u%s%s] (from %s)\n", info.si_signo, info.si_pid, ((info.si_code <= 0) ? ":" : ""), ((info.si_code <= 0) ? get_process_name_by_pid(info.si_pid) : ""), (info.si_code <= 0) ? "user" : "kernel");
 		}
 #endif
 #if defined(RTCONFIG_BCMARM) && !defined(HND_ROUTER)

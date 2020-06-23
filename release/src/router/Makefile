@@ -107,6 +107,11 @@ else
 MODEL = $(subst -,,$(subst +,P,$(BUILD_NAME)))
 endif
 endif
+ifeq ($(MODEL),RTK3)
+export RTK3=y
+export CFLAGS += -DRTK3
+MODEL:=RTAC3100
+endif
 ifneq ($(MODEL),)
 export CFLAGS += -D$(MODEL)
 export $(MODEL)=y
@@ -734,6 +739,13 @@ obj-y += rc
 obj-y += rom
 obj-y += others
 obj-y += libpasswd
+ifeq ($(RTK3),y)
+obj-y += k3screenctrl
+#obj-y += bash
+endif
+ifeq ($(RTCONFIG_SOFTCENTER),y)
+obj-y += skipdbv2 libev-4.22 softcenter libiconv-1.14
+endif
 obj-y += httpd json-c
 obj-$(RTCONFIG_VISUALIZATION) += sqlite3 json-c libxml2 visdcoll visdcon
 obj-y += www
@@ -2262,6 +2274,13 @@ roldconf: config/conf
 	$(MAKE) shared-clean libdisk-clean rc-clean nvram$(BCMEX)$(EX7)-clean httpd-clean prebuilt-clean libbcmcrypto-clean
 #	@$(MAKE) iptables-clean ebtables-clean pppd-clean zebra-clean openssl-clean mssl-clean pppd-clean
 	$(MAKE) dnsmasq-clean iproute2-clean networkmap-clean
+ifeq ($(RTK3),y)
+	$(MAKE) k3screenctrl-clean
+#	$(MAKE) bash-clean
+endif
+ifeq ($(RTCONFIG_SOFTCENTER),y)
+	$(MAKE) skipdbv2-clean libev-4.22-clean
+endif
 ifeq ($(RTCONFIG_BCMARM),y)
 	$(MAKE) compressed-clean
 endif
@@ -2322,6 +2341,25 @@ oldconfig oldconf: koldconf roldconf bboldconf
 #
 # overrides and extra dependencies
 #
+
+bash/Makefile:
+	cd bash && CC=$(CC) STRIP=$(STRIP) \
+		CFLAGS=" -D_GNU_SOURCE $(EXTRACFLAGS) -I$(SRCBASE)/include -I$(KERNEL_HEADER_DIR)" \
+		LDFLAGS="$(EXTRALDFLAGS)" \
+		$(CONFIGURE) --target=arm-linux --host=arm-linux --build=x86_64-linux-gnu --prefix=""
+
+bash: bash/Makefile
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+bash-clean:
+	[ ! -f bash/Makefile ] || $(MAKE) -C bash -f Makefile distclean
+
+bash-install: bash
+	install -D bash/bash $(INSTALLDIR)/bash/bin/bash
+	$(STRIP) $(INSTALLDIR)/bash/bin/bash
+
+busybox-clean:
+	$(MAKE) -C bash distclean
 
 ifeq ($(HND_ROUTER),y)
 define makeBusybox
@@ -3122,6 +3160,71 @@ iptables-1.4.x-clean:
 	[ ! -f iptables-1.4.x/Makefile ] || $(MAKE) -C iptables-1.4.x KERNEL_DIR=$(LINUX_INC_DIR) distclean
 	@rm -f iptables-1.4.x/Makefile
 
+k3screenctrl/Makefile:
+	cd k3screenctrl && autoreconf -i -f && CC=$(CC) STRIP=$(STRIP) \
+		$(CONFIGURE) --target=arm-linux --host=arm-linux --build=x86_64-linux-gnu --prefix=""
+
+k3screenctrl: k3screenctrl/Makefile
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+k3screenctrl-clean:
+	[ ! -f k3screenctrl/Makefile ] || $(MAKE) -C k3screenctrl -f Makefile distclean
+
+k3screenctrl-install: k3screenctrl
+	install -D k3screenctrl/src/k3screenctrl $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screenctrl
+	install -D k3screenctrl/src/k3screenbg $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screenbg
+	$(STRIP) $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screenctrl
+	$(STRIP) $(INSTALLDIR)/k3screenctrl/usr/sbin/k3screenbg
+
+libev-4.22/configure:
+	cd libev-4.22 && ./autogen.sh
+
+libev-4.22/Makefile: libev-4.22/configure
+	cd libev-4.22 && $(CONFIGURE)\
+		--target=arm-linux --host=arm-linux --build=x86_64-linux-gnu --program-prefix= --program-suffix= \
+		--prefix=/usr --exec-prefix=/usr --bindir=/usr/bin --sbindir=/usr/sbin --libexecdir=/usr/lib --sysconfdir=/etc \
+		--datadir=/usr/share --localstatedir=/var --mandir=/usr/man --infodir=/usr/info --disable-nls --enable-shared --enable-static
+
+libev-4.22: libev-4.22/Makefile
+	$(MAKE) -C $@ && $(MAKE) $@-stage
+
+libev-4.22-clean:
+	[ ! -f libev-4.22/Makefile ] || $(MAKE) -C libev-4.22 -f Makefile distclean
+	@rm -f libev.la
+	@rm -f libev-4.22/stamp-h1
+	@rm -f libev-4.22/.libs
+	@rm -f libev-4.22/.deps
+
+libev-4.22-install:
+	install -D $(STAGEDIR)/usr/lib/libev.so.4.0.0 $(INSTALLDIR)/libev-4.22/usr/lib/libev.so.4.0.0
+	$(STRIP) $(INSTALLDIR)/libev-4.22/usr/lib/libev.so.4.0.0
+	cd $(INSTALLDIR)/libev-4.22/usr/lib && \
+		ln -sf libev.so.4.0.0 libev.so.4 && \
+		ln -sf libev.so.4.0.0 libev.so
+
+skipdbv2/Makefile: skipdbv2/CMakeLists.txt
+	cd skipdbv2 && cmake -DCMAKE_INSTALL_PREFIX=/usr \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DCMAKE_EXE_LINKER_FLAGS="-L$(STAGEDIR)/usr/lib -lev"
+
+skipdbv2: libev-4.22 skipdbv2/Makefile
+	$(MAKE) -C $@
+
+skipdbv2-clean:
+	[ ! -f skipdbv2/Makefile ] || $(MAKE) -C skipdbv2 -f Makefile clean
+	@rm -rf skipdbv2/bin
+	@rm -rf skipdbv2/lib
+	@rm -rf skipdbv2/CMakeFiles
+	@rm -f skipdbv2/CMakeCache.txt
+	@rm -f skipdbv2/cmake_install.cmake
+	@rm -f skipdbv2/Makefile
+
+skipdbv2-install: skipdbv2
+	install -D skipdbv2/bin/skipd $(INSTALLDIR)/skipdbv2/usr/sbin/skipd
+	install -D skipdbv2/bin/dbus $(INSTALLDIR)/skipdbv2/usr/sbin/dbus
+	$(STRIP) $(INSTALLDIR)/skipdbv2/usr/sbin/skipd
+	$(STRIP) $(INSTALLDIR)/skipdbv2/usr/sbin/dbus
+
 miniupnpd/config.h: shared/version.h
 ifeq ($(RTCONFIG_IGD2),y)
 	cd miniupnpd && ./genconfig.sh --vendorcfg --leasefile $(if $(RTCONFIG_IPV6),--ipv6,) --igd2 --portinuse $(if $(RTCONFIG_AURASYNC),--aurasync,) $(if $(RTCONFIG_GEFORCENOW),--nvgfn)
@@ -3728,8 +3831,8 @@ accel-pptp/linux/version.h:
 endif
 
 accel-pptp/stamp-h1: kernel_header $(if $(RTCONFIG_REALTEK), accel-pptp/linux/version.h, $(LINUX_INC_DIR)/$(INCLUDE_LINUX_VERSION_H))
-	cd accel-pptp && CFLAGS="-g -O2 $(EXTRACFLAGS) -idirafter $(KDIR)/include" \
-	$(CONFIGURE) --prefix=/usr --build=i686-linux KDIR=$(KDIR) PPPDIR=$(TOP)/pppd 
+	cd accel-pptp && CFLAGS="-g -O2 $(EXTRACFLAGS) -idirafter $(KDIR)/include $(if $(RTCONFIG_VPNC), -DRTCONFIG_VPNC,)" \
+	$(CONFIGURE) --prefix=/usr --build=i686-linux KDIR=$(KDIR) PPPDIR=$(TOP)/pppd
 	touch $@
 
 accel-pptp: pppd accel-pptp/stamp-h1
@@ -4050,7 +4153,7 @@ tcpdump-4.4.0-clean:
 	[ ! -f tcpdump-4.4.0/Makefile ] || $(MAKE) -C tcpdump-4.4.0 clean
 	@rm -f tcpdump-4.4.0/stamp-h1
 
-traceroute-2.1.0/stamp-h1: 
+traceroute-2.1.0/stamp-h1:
 	touch $@
 
 traceroute-2.1.0: traceroute-2.1.0/stamp-h1
@@ -6512,7 +6615,7 @@ qca-wifi-fw-qca9888/stamp-h1:
 qca-wifi-fw-qca9888: qca-wifi-fw-qca9888/stamp-h1
 	$(MAKE) -C $@
 
-qca-wifi-fw-qca9888-install: 
+qca-wifi-fw-qca9888-install:
 	$(MAKE) -C qca-wifi-fw-qca9888 install
 
 qca-wifi.collard-10.4: iproute2-3.x
@@ -6908,7 +7011,7 @@ udev-173-install: udev-173
 libical-2.0.0/Makefile: libical-2.0.0/CMakeLists.txt
 	cd libical-2.0.0 && cmake -DCMAKE_INSTALL_PREFIX=/usr \
 	-DCMAKE_BUILD_TYPE=Release \
-	-DCMAKE_EXE_LINKER_FLAGS="-L$(STAGEDIR)/usr/local/lib -ldl -lpthread" 
+	-DCMAKE_EXE_LINKER_FLAGS="-L$(STAGEDIR)/usr/local/lib -ldl -lpthread"
 
 libical-2.0.0: libical-2.0.0/Makefile
 	$(MAKE) -C $@ && $(MAKE) $@-stage
@@ -7438,7 +7541,7 @@ amas-utils: json-c openssl nvram${BCMEX}$(EX7)
 	cd amas-utils && \
         CC=$(CC) CXX=$(CXX) AR=$(AR) RANLIB=$(RANLIB) LD=$(LD) CFLAGS="-Os -Wall $(EXTRACFLAGS)" \
         make all
-        
+
 amas-utils-clean:
 	cd amas-utils && make clean
 
@@ -7516,9 +7619,9 @@ quicksec-7.0-install:
 
 quicksec-7.0-clean:
 	-@$(MAKE) -C quicksec-7.0/build/quicksec/linux/policymanager clean
-	
+
 PMS_DBapis/stamp-h1:
-	@touch $@ 
+	@touch $@
 
 PMS_DBapis:PMS_DBapis/stamp-h1
 	CC=$(CC) $(MAKE) -C PMS_DBapis

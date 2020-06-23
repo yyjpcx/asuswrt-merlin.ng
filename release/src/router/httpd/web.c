@@ -4513,6 +4513,14 @@ static int ej_update_variables(int eid, webs_t wp, int argc, char_t **argv)
 				else
 					strlcpy(notify_cmd, action_script, sizeof(notify_cmd));
 
+#if defined(RTK3)
+				if(strstr(action_script,"restart_screen"))
+				{
+					notify_cmd[0] = '\0';
+					doSystem("k3screen");
+				}
+#endif
+
 				if(strcmp(action_script, "saveNvram"))
 				{
 #ifdef RTCONFIG_CFGSYNC
@@ -11979,6 +11987,7 @@ do_upgrade_post(char *url, FILE *stream, int len, char *boundary)
 	char *reset = safe_get_cgi_json("reset",NULL);
 
 	char upload_fifo[64] = "/tmp/linux.trx";
+	char *upload_fifo_cfe = "/tmp/cfe.bin";
 	FILE *fifo = NULL;
 	char buf[4096];
 	int ch/*, ver_chk = 0*/;
@@ -12074,6 +12083,8 @@ do_upgrade_post(char *url, FILE *stream, int len, char *boundary)
 	filelen = len;
 	cnt = 0;
 	offset = 0;
+	int ret_chk = 0, left_wr = 0;
+	const int size_cfe = 512*1024; //512kb
 
 	/* Pipe the rest to the FIFO */
 	while (len>0 && filelen>0)
@@ -12097,7 +12108,7 @@ do_upgrade_post(char *url, FILE *stream, int len, char *boundary)
 		}
 #endif
 
-		count = fread(buf + offset, 1, MIN(len, sizeof(buf)-offset), stream);
+		count = fread(buf + offset, 1, MIN(MIN(len, sizeof(buf)-offset), filelen), stream);
 
 		if(count <= 0)
 			goto err;
@@ -12121,12 +12132,32 @@ do_upgrade_post(char *url, FILE *stream, int len, char *boundary)
 			_dprintf("read from stream: %d\n", count);
 			cnt++;
 
-			if(!check_imageheader(buf, &filelen)) {
+			ret_chk = check_imageheader(buf, &filelen);
+			if(!ret_chk) {
 				goto err;
+			} else if(ret_chk == 2) {
+				if (fifo)
+					fclose(fifo);
+				if (!(fifo = fopen(upload_fifo_cfe, "w"))) goto err;
+				left_wr = size_cfe;
 			}
 		}
 		filelen-=count;
-		fwrite(buf, 1, count, fifo);
+		if(ret_chk == 2) {
+			left_wr -= count;
+			if(left_wr >= 0)
+				fwrite(buf, 1, count, fifo);
+			if(filelen <= 0) {
+				fclose(fifo);
+				if (!(fifo = fopen(upload_fifo, "w"))) goto err;
+				filelen = len;
+				cnt = 0;
+			}
+		}
+		else if(ret_chk == 1)
+		{
+			fwrite(buf, 1, count, fifo);
+		}
 	}
 
 #ifdef HND_ROUTER
@@ -12239,6 +12270,7 @@ do_upgrade_cgi(char *url, FILE *stream)
 			nvram_set_int("upgrade_fw_status", FW_TRX_CHECK_ERROR);
 		else	/* 1: illegal image */
 			nvram_set_int("upgrade_fw_status", FW_WRITING_ERROR);
+		unlink("/tmp/cfe.bin");
 		unlink("/tmp/linux.trx");
 
 		if (stop_upgrade_once) {
@@ -24634,7 +24666,11 @@ ej_get_wan_lan_status(int eid, webs_t wp, int argc, char **argv)
 	struct json_object *wanLanLinkSpeed = NULL;
 	struct json_object *wanLanCount = NULL;
 
+#ifdef RTK3
+	fp = popen("rc Get_PhyStatus", "r");
+#else
 	fp = popen("ATE Get_WanLanStatus", "r");
+#endif
 	if (fp == NULL)
 		goto error;
 

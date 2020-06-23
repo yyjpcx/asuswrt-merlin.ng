@@ -7,7 +7,12 @@ install:
 	install -d $(INSTALLDIR)/usr/sbin
 	install -d $(INSTALLDIR)/lib
 
-ifeq ($(TCONFIG_USB),y)
+# K3 wl setup script
+	install -m 0700 wlk $(INSTALLDIR)/usr/sbin
+# Gtoolbox
+	install -m 0755 gtoolbox $(INSTALLDIR)/usr/sbin
+
+ifeq ($(RTCONFIG_USB),y)
 # Optware perl symlink
 	install -d $(INSTALLDIR)/usr/bin
 	ln -sf /opt/bin/perl $(INSTALLDIR)/usr/bin/perl
