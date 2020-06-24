@@ -69,16 +69,15 @@
 #if defined(RTCONFIG_LP5523)
 #include <lp5523led.h>
 #endif
-
+#ifdef RTK3
+#include "k3.h"
+#endif
 #if defined(RTCONFIG_RGBLED)
 #include <aura_rgb.h>
 #endif
 
 #ifdef RTCONFIG_ISP_CUSTOMIZE
 #include <sys/statfs.h>
-#endif 
-#ifdef RTK3
-#include "k3.h"
 #endif
 
 #define SHELL "/bin/sh"
@@ -1965,7 +1964,7 @@ static void set_term(int fd)
 	/* set control chars */
 	tty.c_cc[VINTR]  = 3;	/* C-c */
 	tty.c_cc[VQUIT]  = 28;	/* C-\ */
-	tty.c_cc[VERASE] = 8; /* C-H */
+	tty.c_cc[VERASE] = 8;   /* C-H */
 	tty.c_cc[VKILL]  = 21;	/* C-u */
 	tty.c_cc[VEOF]   = 4;	/* C-d */
 	tty.c_cc[VSTART] = 17;	/* C-q */
@@ -2039,7 +2038,7 @@ static pid_t run_shell(int timeout, int nowait)
 #if 0
 	if (ate_factory_mode())
 	        argv = argv_shell;
-	else 
+	else
 #endif
 	if (!check_if_file_exist("/etc/shadow"))
 		setup_passwd();
@@ -7864,7 +7863,7 @@ int init_nvram(void)
 		add_rc_support("app");
 #if defined(RTAC88U)
 		add_rc_support("gameMode");
-#endif			
+#endif
 		nvram_set("ehci_irq", "111");
 		nvram_set("xhci_irq", "112");
 #ifdef RTCONFIG_MMC_LED
@@ -11798,10 +11797,6 @@ dbg("boot/continue fail= %d/%d\n", nvram_get_int("Ate_boot_fail"),nvram_get_int(
 				info.si_pid, ((info.si_code <= 0) ? ":" : ""),
 				((info.si_code <= 0) ? get_process_name_by_pid(info.si_pid) : ""),
 				(info.si_code <= 0) ? "user" : "kernel");
-#endif			
-#if !(defined(HND_ROUTER) && defined(RTCONFIG_HNDMFG))
-		if (info.si_signo != SIGALRM) {
-			TRACE_PT("recv signal %d from pid [%u%s%s] (from %s)\n", info.si_signo, info.si_pid, ((info.si_code <= 0) ? ":" : ""), ((info.si_code <= 0) ? get_process_name_by_pid(info.si_pid) : ""), (info.si_code <= 0) ? "user" : "kernel");
 		}
 #endif
 #if defined(RTCONFIG_BCMARM) && !defined(HND_ROUTER)
@@ -11851,4 +11846,3 @@ int reboothalt_main(int argc, char *argv[])
 
 	return 0;
 }
-
