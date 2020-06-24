@@ -138,14 +138,11 @@ void start_ubifs(void)
 	char dev_mtd[] = "/dev/mtdXXX";
 #endif
 
-#ifndef RTCONFIG_NVRAM_FILE
 	if (!nvram_match("ubifs_on", "1")) {
 		notice_set("ubifs", "");
 		return;
 	}
-#endif
 
-#ifndef RTCONFIG_NVRAM_FILE
 #if defined(RTCONFIG_LANTIQ)
 	if (!wait_action_idle(1))
 		return;
@@ -153,9 +150,7 @@ void start_ubifs(void)
 	if (!wait_action_idle(10))
 		return;
 #endif
-#endif
 
-#ifndef RTCONFIG_NVRAM_FILE
 #if defined(RTCONFIG_MTK_NAND) || defined(RTK3)
 	if (!mtd_getinfo(JFFS2_MTD_NAME, &mtd_part, &mtd_size)) return;
 
@@ -171,8 +166,7 @@ void start_ubifs(void)
 	unsigned int num_leb = 0, num_avail_leb = 0, vol_size = 0;
 	num_leb = mtd_size >> 17;			/* compute number of leb divde by 128KiB */
 	if (ubi_getinfo(UBIFS_VOL_NAME, &dev, &part, &size) == 1) {	//ubi volume not found, format it and create volume
-		unsigned int num_leb = 0, num_avail_leb = 0, vol_size = 0;
-		
+
 		_dprintf("*** ubifs: ubi volume not found\n");
 
 #ifdef RTK3
@@ -189,7 +183,6 @@ void start_ubifs(void)
 #endif
 
 		/* compute jffs2's volume size */
-		num_leb = mtd_size >> 17;			/* compute number of leb divde by 128KiB */
 		num_avail_leb = num_leb - NUM_OH_LEB;
 		vol_size = (num_avail_leb * LEBS) >> 10;	/* convert to KiB unit */
 		if (vol_size > 0) {
@@ -209,13 +202,11 @@ void start_ubifs(void)
 		}
 	}
 #endif
-#endif
 
 	if (ubi_getinfo(UBIFS_VOL_NAME, &dev, &part, &size) < 0)
 		return;
 
 	_dprintf("*** ubifs: %s %d, %d, %d\n", UBIFS_VOL_NAME, dev, part, size);
-#ifndef RTCONFIG_NVRAM_FILE
 	if (nvram_match("ubifs_format", "1") || nvram_match("jffs2_format", "1")) {
 		nvram_set("ubifs_format", "0");
 		nvram_set("jffs2_format", "0");
@@ -227,11 +218,7 @@ void start_ubifs(void)
 
 		format = 1;
 	}
-#else
-		format = 0;
-#endif
 
-#ifndef RTCONFIG_NVRAM_FILE
 	sprintf(s, "%d", size);
 	p = nvram_get("ubifs_size");
 	if ((p == NULL) || (strcmp(p, s) != 0)) {
@@ -243,7 +230,6 @@ void start_ubifs(void)
 			return;
 		}
 	}
-#endif
 
 	if ((statfs(UBIFS_MNT_DIR, &sf) == 0)
 	    && (sf.f_type != 0x73717368 /* squashfs */ )) {
@@ -251,7 +237,6 @@ void start_ubifs(void)
 		notice_set("ubifs", format ? "Formatted" : "Loaded");
 		return;
 	}
-#ifndef RTCONFIG_NVRAM_FILE
 	if (nvram_get_int("ubifs_clean_fs")) {
 		if (ubifs_unlock(dev, part)) {
 			error("unlocking");
@@ -262,13 +247,12 @@ void start_ubifs(void)
 		nvram_commit_x();
 #endif
 	}
-#endif
 	sprintf(s, "/dev/ubi%d_%d", dev, part);
 
 	int loop = 1;
 	while (loop <= 4)
 	{
-	if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
+		if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
 			if (loop == 4) {
 				error("mounting");
 				return;
@@ -285,15 +269,12 @@ void start_ubifs(void)
 				eval("ubiattach", "-p", dev_mtd, "-d", UBI_DEV_NUM);
 				eval("ubimkvol", UBI_DEV_PATH, "-s", vol_size_s, "-N", UBIFS_VOL_NAME);
 			}
-		if (ubifs_erase(dev, part)) {
-			error("formatting");
+			if (ubifs_erase(dev, part)) {
+				error("formatting");
 				continue;
-		}
+			}
 		} else {
-		format = 1;
-		if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
-			_dprintf("*** ubifs 2-nd mount error\n");
-			error("mounting");
+			format = 1;
 			break;
 		}
 		loop++;
@@ -302,19 +283,19 @@ void start_ubifs(void)
 #if defined(RTCONFIG_ISP_CUSTOMIZE)
 	load_customize_package();
 #endif
-#ifndef RTCONFIG_NVRAM_FILE
+
 	if (nvram_get_int("ubifs_clean_fs")) {
 		_dprintf("Clean /jffs/*\n");
 		system("rm -fr /jffs/*");
 		nvram_unset("ubifs_clean_fs");
 		nvram_commit_x();
 	}
-#endif
+
 	userfs_prepare(UBIFS_MNT_DIR);
 
 	notice_set("ubifs", format ? "Formatted" : "Loaded");
 
-#ifndef RTCONFIG_NVRAM_FILE
+#if 0 /* disable legacy & asus autoexec */
 	if (((p = nvram_get("ubifs_exec")) != NULL) && (*p != 0)) {
 		chdir(UBIFS_MNT_DIR);
 		system(p);
@@ -325,10 +306,10 @@ void start_ubifs(void)
 		system(p);
 		chdir("/");
 	}
-#endif
+
 	run_userfile(UBIFS_MNT_DIR, ".asusrouter", UBIFS_MNT_DIR, 3);
 #endif
-#ifndef RTCONFIG_NVRAM_FILE
+
 #if defined(RTCONFIG_TEST_BOARDDATA_FILE)
 	/* Copy /lib/firmware to /tmp/firmware, and
 	 * bind mount /tmp/firmware to /lib/firmware.
@@ -340,7 +321,6 @@ void start_ubifs(void)
 	}
 	if ((r = mount(UBIFS_MNT_DIR "/firmware", "/lib/firmware", NULL, MS_BIND, NULL)) != 0)
 		_dprintf("%s: bind mount " UBIFS_MNT_DIR "/firmware fail! (r = %d)\n", __func__, r);
-#endif
 #endif
 
 	if (!check_if_dir_exist("/jffs/scripts/")) mkdir("/jffs/scripts/", 0755);
