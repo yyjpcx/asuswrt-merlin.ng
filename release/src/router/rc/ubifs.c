@@ -268,7 +268,7 @@ void start_ubifs(void)
 	int loop = 1;
 	while (loop <= 4)
 	{
-		if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
+	if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
 			if (loop == 4) {
 				error("mounting");
 				return;
@@ -285,15 +285,15 @@ void start_ubifs(void)
 				eval("ubiattach", "-p", dev_mtd, "-d", UBI_DEV_NUM);
 				eval("ubimkvol", UBI_DEV_PATH, "-s", vol_size_s, "-N", UBIFS_VOL_NAME);
 			}
-			if (ubifs_erase(dev, part)) {
-				error("formatting");
+		if (ubifs_erase(dev, part)) {
+			error("formatting");
 				continue;
-			}
+		}
 		} else {
-			format = 1;
-			if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
-				_dprintf("*** ubifs 2-nd mount error\n");
-				error("mounting");
+		format = 1;
+		if (mount(s, UBIFS_MNT_DIR, UBIFS_FS_TYPE, MS_NOATIME, "") != 0) {
+			_dprintf("*** ubifs 2-nd mount error\n");
+			error("mounting");
 			break;
 		}
 		loop++;
@@ -310,7 +310,6 @@ void start_ubifs(void)
 		nvram_commit_x();
 	}
 #endif
-
 	userfs_prepare(UBIFS_MNT_DIR);
 
 	notice_set("ubifs", format ? "Formatted" : "Loaded");
@@ -326,7 +325,7 @@ void start_ubifs(void)
 		system(p);
 		chdir("/");
 	}
-
+#endif
 	run_userfile(UBIFS_MNT_DIR, ".asusrouter", UBIFS_MNT_DIR, 3);
 #endif
 #ifndef RTCONFIG_NVRAM_FILE
@@ -367,8 +366,10 @@ void stop_ubifs(int stop)
 
 	if ((statfs(UBIFS_MNT_DIR, &sf) == 0) && (sf.f_type != 0x73717368)) {
 		// is mounted
+#if 0 /* disable legacy & asus autoexec */
 		run_userfile(UBIFS_MNT_DIR, ".autostop", UBIFS_MNT_DIR, 5);
 		run_nvscript("script_autostop", UBIFS_MNT_DIR, 5);
+#endif
 	}
 #if defined(RTCONFIG_PSISTLOG)
 	if (!stop && !strncmp(get_syslog_fname(0), UBIFS_MNT_DIR "/", sizeof(UBIFS_MNT_DIR) + 1)) {
