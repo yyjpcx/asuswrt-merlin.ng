@@ -1,4 +1,4 @@
-﻿/* menuTree_bwdpi_traffic_analyzer.js */
+/* menuTree_bwdpi_traffic_analyzer.js */
 define(function(){
 	var menuTree = {
 		list: [
@@ -149,7 +149,7 @@ define(function(){
 					{url: "Advanced_TimeMachine.asp", tabName: "__INHERIT__"},
 					{url: "fileflex.asp", tabName: "__INHERIT__"},
 					{url: "NULL", tabName: "__INHERIT__"}
-				]
+				] 
 			},
 			{
 				menuName: "<#AiCloud_Title#>",
@@ -506,7 +506,7 @@ define(function(){
 					retArray.push("YandexDNS.asp");
 				}
 
-				if(!frs_feedback_support || !feedback_support) {		
+				if(!frs_feedback_support) {		
 					retArray.push("Advanced_Feedback.asp");
 					retArray.push("Feedback_Info.asp");
 				}
