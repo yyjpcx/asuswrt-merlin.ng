@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <html xmlns:v>
 <head>
@@ -85,6 +85,59 @@
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 10px;
 	border-radius: 10px;
+}
+.AiMesh_promoteHint_bg {
+	position: absolute;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
+	border-radius: 5px;
+	z-index: 200;
+	background-color:#2b373b;
+	margin-left: 140px;
+	width: 600px;
+	height: auto;
+	box-shadow: 3px 3px 10px #000;
+	display:block;
+	overflow: auto;
+	line-height: 180%;
+	font-size: 14px;
+}
+.AiMesh_promoteHint_content_bg {
+	width: 570px;
+	height: 200px;
+	position: relative;
+	overflow: hidden;
+	margin: auto;
+	margin-top: 10px;
+}
+.AiMesh_promoteHint_content_bg.redirect {
+	height: auto;
+	text-align: center;
+}
+.AiMesh_promoteHint_content_left_bg {
+	float: left;
+	width: 48%;
+	height: 100%;
+	margin: 0 1%;
+}
+.AiMesh_promoteHint_title {
+	font-weight: bolder;
+	text-align: center;
+	font-size: 16px;
+	height: 50px;
+	line-height: 50px;
+}
+.AiMesh_promoteHint_img {
+	background-size: 100%;
+	background-repeat: no-repeat;
+	background-position-y: 50%;
+	background-image: url(/images/New_ui/amesh/house_final_dea.png);
+}
+.AiMesh_promoteHint_redirect_text {
+	font-weight: bolder;
+	text-decoration: underline;
+	cursor: pointer;
+	margin: 10px;
 }
 </style>
 <script type="text/javascript" src="/md5.js"></script>
@@ -227,6 +280,7 @@ function initial(){
 			updateAMeshCount();
 			setInterval(updateAMeshCount, 5000);
 		});
+		setTimeout(AiMesh_promoteHint, 1000);
 	}
 	else
 		$("#ameshContainer").remove();
@@ -973,6 +1027,7 @@ function change_wan_unit(wan_unit_flag){
 }
 
 function show_ddns_fail_hint() {
+	var ddns_return_code = '<% nvram_get_ddns("LANHostConfig","ddns_return_code"); %>';
 	var str="";
 	if(sw_mode != 3 && document.getElementById("connect_status").className == "connectstatusoff")
 		str = "<#Disconnected#>";
@@ -2578,7 +2633,7 @@ function notice_apply(){
 							<div id="helpname" style="padding-top:10px;font-size:16px;"></div>
 						</div>							
 						<div class="NM_radius_bottom_container">
-							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px;height:880px;width:320px;\9" name="statusframe" frameborder="0"></iframe>
+							<iframe id="statusframe" class="NM_radius_bottom" style="display:none;margin-left:0px;height:760px;width:320px;\9" name="statusframe" frameborder="0"></iframe>
 						</div>
 				
 						<script>
