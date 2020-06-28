@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
 	<meta charset="UTF-8">
@@ -768,7 +768,6 @@ function adjust_tx_power(){
 		document.getElementById('slider1').children[0].style.width = (power_value * 100 / 31) + "%";
 		document.getElementById('slider1').children[1].style.left = (power_value * 100 / 31) + "%";
 		document.getElementById("tx_power1_desc").innerHTML = power_value + "dbm " + Math.round(Math.pow(10,( power_value / 10 )))+ "mW";
-
 		if(power_value_old != ""){
 			translated_value = parseInt(power_value_old/80*100);
 			if(translated_value >=100){
@@ -817,7 +816,7 @@ function adjust_tx_power(){
 			document.getElementById('slider').children[1].style.left =  "100%";
 			document.form.wl_txpower.value = 100;
 			document.getElementById("tx_power_desc").innerHTML = power_table_desc[4];
-		}	
+		}		
 	}
 }
 
