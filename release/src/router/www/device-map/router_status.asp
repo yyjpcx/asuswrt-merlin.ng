@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
@@ -193,7 +193,7 @@ function initial(){
 	detect_CPU_RAM();
 
 	if(!lyra_hide_support)
-		get_ethernet_ports();
+	get_ethernet_ports();
 	update_coretmp();
 
 	var table_height = document.getElementById("rt_table").clientHeight;
@@ -230,9 +230,6 @@ function tabclickhandler(wl_unit){
 	if(wl_unit == "status"){
 		location.href = "router_status.asp";
 	}
-/*	else if (wl_unit == "compatibility") {
-		location.href = "compatibility.asp";
-	}*/
 	else{
 		if((parent.sw_mode == 2 || parent.sw_mode == 4) && '<% nvram_get("wlc_band"); %>' == wl_unit)
 			document.form.wl_subunit.value = 1;
@@ -364,7 +361,6 @@ function tab_reset(v){
 	var tab_array1 = document.getElementsByClassName("tab_NW");
 	var tab_array2 = document.getElementsByClassName("tabclick_NW");
 	var tab_width = Math.floor(270/(parent.wl_info.wl_if_total+1));
-
 	var i = 0;
 	while(i < tab_array1.length){
 		tab_array1[i].style.width = tab_width + 'px';
