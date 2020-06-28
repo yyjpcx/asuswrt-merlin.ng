@@ -1,4 +1,4 @@
-﻿/* menuTree_bwdpi_traffic_analyzer.js */
+/* menuTree_bwdpi_traffic_analyzer.js */
 define(function(){
 	var menuTree = {
 		list: [
@@ -120,7 +120,7 @@ define(function(){
 			},
 			{
 				menuName: "<#Traffic_Analyzer#>",
-				index: "menu_TrafficAnalyzer",
+				index: "menu_TrafficAnalyzer", 
 				tab: [
 					{url: "Main_TrafficMonitor_realtime.asp", tabName: "<#traffic_monitor#>"},
 					{url: "Main_TrafficMonitor_last24.asp", tabName: "__INHERIT__"},
@@ -152,7 +152,7 @@ define(function(){
 			},
 			{
 				menuName: "<#Menu_usb_application#>",
-				index: "menu_APP",
+				index: "menu_APP", 
 				tab: [
 					{url: "APP_Installation.asp", tabName: "__HIDE__"},
 					{url: "aidisk.asp", tabName: "__INHERIT__"},
@@ -165,7 +165,7 @@ define(function(){
 					{url: "Advanced_TimeMachine.asp", tabName: "__INHERIT__"},
 					{url: "fileflex.asp", tabName: "__INHERIT__"},
 					{url: "NULL", tabName: "__INHERIT__"}
-				]
+				] 
 			},
 			{
 				menuName: "<#AiCloud_Title#>",
@@ -331,7 +331,6 @@ define(function(){
 					{url: "Main_Analysis_Content.asp", tabName: "<#Network_Analysis#>"},
 					{url: "Main_Netstat_Content.asp", tabName: "Netstat"},
 					{url: "Main_WOL_Content.asp", tabName: "<#NetworkTools_WOL#>"},
-					//{url: "Main_ChkSta_Content.asp", tabName: "<#NetworkTools_ChkSta#>"},
 					{url: "Advanced_Smart_Connect.asp", tabName: "<#smart_connect_rule#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
@@ -550,7 +549,7 @@ define(function(){
 					retArray.push("YandexDNS.asp");
 				}
 
-				if(!frs_feedback_support || !feedback_support) {		
+				if(!frs_feedback_support) {		
 					retArray.push("Advanced_Feedback.asp");
 					retArray.push("Feedback_Info.asp");
 				}
@@ -558,7 +557,7 @@ define(function(){
 				if(noftp_support){
 					retArray.push("Advanced_AiDisk_ftp.asp");
 				}
-
+				
 				if(!dualWAN_support){
 					retArray.push("Advanced_WANPort_Content.asp");
 					retArray.push("Advanced_Modem_Content.asp");
@@ -579,7 +578,7 @@ define(function(){
 				}
 
 				if(!SwitchCtrl_support){
-					retArray.push("Advanced_SwitchCtrl_Content.asp");
+					retArray.push("Advanced_SwitchCtrl_Content.asp");		
 				}
 
 				if(!tr069_support){
@@ -671,7 +670,7 @@ define(function(){
 				if((!Rawifi_support && ! Rtkwifi_support) || !concurrep_support || !isSwMode("re")){
 					retArray.push("Advanced_WProxy_Content.asp");
 				}
-
+				
 				if(!captivePortal_support) {
 					retArray.push("Captive_Portal.asp");
 					retArray.push("Captive_Portal_Advanced.asp");
@@ -729,7 +728,7 @@ define(function(){
 				}
 				else if(isSwMode("ap")){
 					retArray.push("GameBoost.asp");
-					retArray.push("TrafficAnalyzer_Statistic.asp");
+					retArray.push("TrafficAnalyzer_Statistic.asp");	
 					if(!dhcp_override_support){
 						retArray.push("Advanced_DHCP_Content.asp");
 					}
