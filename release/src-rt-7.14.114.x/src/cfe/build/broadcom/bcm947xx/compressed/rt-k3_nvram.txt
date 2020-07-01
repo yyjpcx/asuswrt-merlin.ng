@@ -790,7 +790,7 @@ devpath2=pcie/2/1/
 bootflags=1
 
 # ODM Product ID
-odmpid=RT-AC3100
+odmpid=RT-K3
 
 # Model Name
 model=RT-AC3100
