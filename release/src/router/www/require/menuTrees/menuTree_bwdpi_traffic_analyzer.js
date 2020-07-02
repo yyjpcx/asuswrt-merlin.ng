@@ -337,18 +337,18 @@ define(function(){
 				]
 			},
 			{
-				menuName: "软件中心",
+				menuName: "<#Softcenter#>",
 				index: "menu_Split",
 				tab: [
 					{url: "NULL", tabName: "__HIDE__"}
 				]
 			},
 			{
-				menuName: "软件中心",
+				menuName: "<#Softcenter#>",
 				index: "menu_Softcenter",
 				tab: [
-					{url: "Module_Softcenter.asp", tabName: "软件中心"},
-					{url: "Module_Softsetting.asp", tabName: "离线安装"},
+					{url: "Module_Softcenter.asp", tabName: "<#Softcenter#>"},
+					{url: "Module_Softsetting.asp", tabName: "<#ManualInstall#>"},
 					{url: "NULL", tabName: "__INHERIT__"}
 				]
 			}
