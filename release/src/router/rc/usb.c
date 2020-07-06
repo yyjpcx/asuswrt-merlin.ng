@@ -1756,7 +1756,7 @@ _dprintf("%s: stop_cloudsync.\n", __func__);
 
 	for (count = 0; count < 35; count++) {
 		sync();
-		ret = umount(mnt->mnt_dir);
+		ret = strcmp(mnt->mnt_dir,"/jffs") == 0 ? 0 : umount(mnt->mnt_dir);
 		if (!ret)
 			break;
 
@@ -1815,6 +1815,10 @@ _dprintf("%s: stop_cloudsync.\n", __func__);
 		if ((unlink(flagfn) == 0)) {
 			// Only delete the directory if it was auto-created
 			rmdir(mnt->mnt_dir);
+		}
+		if (nvram_get_int("usb2jffs_enable")) {
+			_dprintf("run scripts: usb2jffs.sh unmount\n");
+			eval("usb2jffs.sh", "unmount");
 		}
 	}
 
@@ -2124,6 +2128,15 @@ _dprintf("usb_path: 4. don't set %s.\n", tmp);
 		// check the permission files.
 		if(ret == MOUNT_VAL_RW)
 			test_of_var_files(mountpoint);
+
+		if (nvram_get_int("usb2jffs_enable")) {
+			_dprintf("run scripts: usb2jffs.sh mount\n");
+			eval("usb2jffs.sh", "mount");
+#ifdef RTCONFIG_SOFTCENTER
+			_dprintf("run scripts: jffsinit.sh\n");
+			eval("jffsinit.sh");
+#endif
+		}
 
 		if (nvram_get_int("usb_automount"))
 			run_nvscript("script_usbmount", mountpoint, 3);
@@ -4896,6 +4909,7 @@ static void start_diskformat(char *port_path)
 		char *tfat_cmd[] = { "mkfatfs", "-l", disk_label, "-v", devpath, NULL };
 		char *tntfs_cmd[] = {"mkntfs", "-F", "-L", disk_label, "-v", devpath, NULL };
 		char *thfsplus_cmd[] = { "newfs_hfs", "-v", disk_label, devpath, NULL };
+		char *ext4_cmd[] = { "mke2fs", "-t", "ext4", "-L", disk_label, "-T", "largefile", "-m", "1", "-pF", devpath, NULL };
 #endif
 		// format partition.
 		snprintf(devpath, sizeof(devpath), "/dev/%s", di->device);
@@ -4920,6 +4934,9 @@ static void start_diskformat(char *port_path)
 		}
 		else if(!strcmp(disk_system, "thfsplus") && nvram_match("usb_hfs_mod", "tuxera")) {
 			cmd = thfsplus_cmd;
+		}
+		else if(!strcmp(disk_system, "ext4")) {
+			cmd = ext4_cmd;
 		}
 		else
 #endif

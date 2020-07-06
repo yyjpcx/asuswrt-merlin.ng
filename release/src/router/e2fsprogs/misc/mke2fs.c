@@ -84,6 +84,7 @@ static const char * device_name /* = NULL */;
 /* Command line options */
 static int	cflag;
 int	verbose;
+int printmode; /* output without special characters */
 int	quiet;
 static int	super_only;
 static int	discard = 1;	/* attempt to discard device before fs creation */
@@ -382,9 +383,13 @@ static void write_inode_tables(ext2_filsys fs, int lazy_flag, int itable_zeroed)
 	int		num;
 	struct ext2fs_numeric_progress_struct progress;
 
-	ext2fs_numeric_progress_init(fs, &progress,
+	if (!printmode) {
+		ext2fs_numeric_progress_init(fs, &progress,
 				     _("Writing inode tables: "),
 				     fs->group_desc_count);
+	} else {
+		printf("%s", _("Writing inode tables: "));
+	}
 
 	for (i = 0; i < fs->group_desc_count; i++) {
 		ext2fs_numeric_progress_update(fs, &progress, i);
@@ -417,8 +422,12 @@ static void write_inode_tables(ext2_filsys fs, int lazy_flag, int itable_zeroed)
 		}
 	}
 	ext2fs_zero_blocks2(0, 0, 0, 0, 0);
-	ext2fs_numeric_progress_close(fs, &progress,
+	if (!printmode) {
+		ext2fs_numeric_progress_close(fs, &progress,
 				      _("done                            \n"));
+	} else {
+		printf("%s", _("done\n"));
+	}
 }
 
 static void create_root_dir(ext2_filsys fs)
@@ -577,9 +586,14 @@ static void create_journal_dev(ext2_filsys fs)
 	if (journal_flags & EXT2_MKJOURNAL_LAZYINIT)
 		goto write_superblock;
 
-	ext2fs_numeric_progress_init(fs, &progress,
+	if (!printmode) {
+		ext2fs_numeric_progress_init(fs, &progress,
 				     _("Zeroing journal device: "),
 				     ext2fs_blocks_count(fs->super));
+	} else {
+		printf("%s", _("Writing inode tables: "));
+	}
+
 	blk = 0;
 	count = ext2fs_blocks_count(fs->super);
 	while (count > 0) {
@@ -601,7 +615,8 @@ static void create_journal_dev(ext2_filsys fs)
 	}
 	ext2fs_zero_blocks2(0, 0, 0, 0, 0);
 
-	ext2fs_numeric_progress_close(fs, &progress, NULL);
+	if (!printmode)
+		ext2fs_numeric_progress_close(fs, &progress, NULL);
 write_superblock:
 	retval = io_channel_write_blk64(fs->io,
 					fs->super->s_first_data_block+1,
@@ -1512,7 +1527,7 @@ profile_error:
 	}
 
 	while ((c = getopt (argc, argv,
-		    "b:cg:i:jl:m:no:qr:s:t:vC:DE:FG:I:J:KL:M:N:O:R:ST:U:V")) != EOF) {
+		    "b:cg:i:jl:m:no:pqr:s:t:vC:DE:FG:I:J:KL:M:N:O:R:ST:U:V")) != EOF) {
 		switch (c) {
 		case 'b':
 			blocksize = parse_num_blocks2(optarg, -1);
@@ -1668,6 +1683,9 @@ profile_error:
 			break;
 		case 'O':
 			fs_features = optarg;
+			break;
+		case 'p':
+			printmode = 1;
 			break;
 		case 'q':
 			quiet = 1;
@@ -2454,9 +2472,14 @@ static int mke2fs_discard_device(ext2_filsys fs)
 	count *= (1024 * 1024);
 	count /= fs->blocksize;
 
-	ext2fs_numeric_progress_init(fs, &progress,
+	if (!printmode) {
+		ext2fs_numeric_progress_init(fs, &progress,
 				     _("Discarding device blocks: "),
 				     blocks);
+	} else {
+		printf("%s", _("Writing inode tables: "));
+	}
+
 	while (cur < blocks) {
 		ext2fs_numeric_progress_update(fs, &progress, cur);
 
@@ -2470,13 +2493,22 @@ static int mke2fs_discard_device(ext2_filsys fs)
 	}
 
 	if (retval) {
-		ext2fs_numeric_progress_close(fs, &progress,
+		if (!printmode) {
+			ext2fs_numeric_progress_close(fs, &progress,
 				      _("failed - "));
+		} else {
+			printf("%s\n", _("failed - "));
+		}
 		if (!quiet)
 			printf("%s\n",error_message(retval));
-	} else
-		ext2fs_numeric_progress_close(fs, &progress,
+	} else {
+		if (!printmode) {
+			ext2fs_numeric_progress_close(fs, &progress,
 				      _("done                            \n"));
+		} else {
+			printf("%s\n", _("done\n"));
+		}
+	}
 
 	return retval;
 }
@@ -2588,7 +2620,7 @@ int main (int argc, char *argv[])
 	 * or whatever we've written so far.  The quiet flag disables
 	 * this, along with a lot of other output.
 	 */
-	if (!quiet)
+	if (!quiet && !printmode)
 		flags |= EXT2_FLAG_PRINT_PROGRESS;
 	retval = ext2fs_initialize(device_name, flags, &fs_param, io_ptr, &fs);
 	if (retval) {
