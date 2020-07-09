@@ -111,6 +111,14 @@ define(function(){
 				]
 			},
 			{
+				menuName: "网易UU加速器",
+				index: "menu_UU", 
+				tab: [
+					{url: "UUAccelerator.asp", tabName: "网易UU加速器"},
+					{url: "NULL", tabName: "__INHERIT__"}
+				] 
+			},			
+			{
 				menuName: "<#Traffic_Analyzer#>",
 				index: "menu_TrafficAnalyzer",
 				tab: [
