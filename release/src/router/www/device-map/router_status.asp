@@ -141,9 +141,9 @@ var current_tx = 0;
 var qos_enable = "<% nvram_get("qos_enable"); %>";
 var qos_ibw = "<% nvram_get("qos_ibw"); %>";
 var qos_obw = "<% nvram_get("qos_obw"); %>";
-curr_coreTmp_cpu = "<% get_cpu_temperature(); %>";
-curr_coreTmp_2 = "<% sysinfo("temperature.2"); %>".replace("&deg;C", "");
-curr_coreTmp_5 = "<% sysinfo("temperature.5"); %>".replace("&deg;C", "");
+var curr_coreTmp_cpu = "<% get_cpu_temperature(); %>";
+var curr_coreTmp_2 = "<% sysinfo("temperature.2"); %>".replace("&deg;C", "");
+var curr_coreTmp_5 = "<% sysinfo("temperature.5"); %>".replace("&deg;C", "");
 
 function initial(){
 	generate_cpu_field();
@@ -338,9 +338,9 @@ function render_Temperature(_coreTemp_2, _coreTemp_5, _cpuTemp){
 	coreTmp[1] = _coreTemp_5;
 	coreTmp[2] = _cpuTemp;
 
-	$("#temper_2").html(_coreTemp_2 + "°C");
-	$("#temper_5").html(_coreTemp_5 + "°C");
-	$("#temper_cpu").html(_cpuTemp + "°C");
+	$("#temper_2").html(_coreTemp_2 + "&deg;C");
+	$("#temper_5").html(_coreTemp_5 + "&deg;C");
+	$("#temper_cpu").html(_cpuTemp + "&deg;C");
 
 	for(i=0;i<3;i++){
 		temp_pt = "";
