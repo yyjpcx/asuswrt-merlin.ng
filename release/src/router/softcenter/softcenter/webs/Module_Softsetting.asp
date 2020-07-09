@@ -7,7 +7,7 @@
 <meta HTTP-EQUIV="Expires" CONTENT="-1"/>
 <link rel="shortcut icon" href="images/favicon.png"/>
 <link rel="icon" href="images/favicon.png"/>
-<title>软件中心 - 离线安装</title>
+<title><#Softcenter#> - <#ManualInstall#></title>
 <link rel="stylesheet" type="text/css" href="index_style.css"/>
 <link rel="stylesheet" type="text/css" href="form_style.css"/>
 <link rel="stylesheet" type="text/css" href="/res/softcenter.css">
@@ -23,12 +23,14 @@
 <script>
 var _responseLen;
 var noChange = 0;
+var tabtitle = new Array();
+var tablink = new Array();
 function init(menu_hook) {
 	show_menu();
 	get_log();
 }
 function menu_hook() {
-	tabtitle[tabtitle.length - 1] = new Array("", "软件中心", "离线安装");
+	tabtitle[tabtitle.length - 1] = new Array("", "<#Softcenter#>", "<#ManualInstall#>");
 	tablink[tablink.length - 1] = new Array("", "Module_Softcenter.asp", "Module_Softsetting.asp");
 }
 function upload_software() {
