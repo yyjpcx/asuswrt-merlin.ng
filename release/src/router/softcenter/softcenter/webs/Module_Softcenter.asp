@@ -664,7 +664,7 @@ function notice_show() {
 												<div>&nbsp;</div>
 												<div id="title_name" class="formfonttitle"></div>
 												<script type="text/javascript">
-													var MODEL = '<% nvram_get("odmpid"); %>' || '<% nvram_get("model"); %>';
+													var MODEL = '<% nvram_get("model"); %>' || '<% nvram_get("odmpid"); %>';
 													$("#title_name").html("Software Center " + MODEL)
 												</script>
 												<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
