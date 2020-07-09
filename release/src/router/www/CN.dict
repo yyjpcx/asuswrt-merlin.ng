@@ -3771,6 +3771,7 @@ weekSche_MAX_Del_Hint=为了添加新规则，您可以删除那些未使用的�
 weekSche_Offtime_Sche=离线计划
 Softcenter=软件中心
 Softcenter_tool=工具箱
+ManualInstall=离线安装
 WLANConfig11b_TxPower_custom=自定义功率
 WLANConfig11b_TxPower_asus=官方功率定义:%
 WLANConfig11b_TxPower_dbm=自定义功率:dbm
