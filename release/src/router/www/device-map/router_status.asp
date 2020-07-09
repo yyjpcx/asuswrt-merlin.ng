@@ -336,9 +336,9 @@ function render_Temperature(_coreTemp_2, _coreTemp_5, _cpuTemp){
 	coreTmp[1] = _coreTemp_5;
 	coreTmp[2] = _cpuTemp;
 
-	$("#temper_2").html(_coreTemp_2 + "°C");
-	$("#temper_5").html(_coreTemp_5 + "°C");
-	$("#temper_cpu").html(_cpuTemp + "°C");
+	$("#temper_2").html(_coreTemp_2 + "&deg;C");
+	$("#temper_5").html(_coreTemp_5 + "&deg;C");
+	$("#temper_cpu").html(_cpuTemp + "&deg;C");
 
 	for(i=0;i<3;i++){
 		temp_pt = "";
