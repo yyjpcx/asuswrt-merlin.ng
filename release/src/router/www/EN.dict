@@ -3771,6 +3771,7 @@ weekSche_MAX_Del_Hint=In order to add new rules, you can delete those rules that
 weekSche_Offtime_Sche=Offtime schedule
 Softcenter=Softcenter
 Softcenter_tool=Tools
+ManualInstall=ManualInstall
 WLANConfig11b_TxPower_custom=Customize Tx Power
 WLANConfig11b_TxPower_asus=ASUS official:%
 WLANConfig11b_TxPower_dbm=Custom:dbm
