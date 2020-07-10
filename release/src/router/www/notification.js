@@ -397,7 +397,9 @@ var notification = {
 			notification.clickCallBack[17] = "location.href = 'Tools_Sysinfo.asp';"
 		}else
 			notification.low_nvram = 0;
-
+		
+		var jffsusage = <% sysinfo("jffs.usage"); %>;
+		var jffsfree = <% sysinfo("jffs.free"); %>;
 		// Low JFFS
 		if(<% sysinfo("jffs.free"); %> < 3){
 			notification.array[18] = 'noti_low_jffs';
