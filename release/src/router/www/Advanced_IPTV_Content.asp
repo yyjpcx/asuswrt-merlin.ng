@@ -1404,10 +1404,7 @@ function change_mr_enable(switch_stb_x){
 			<div id="IPTV_desc_DualWAN_BRTAC828" class="formfontdesc" style="display:none;">
 				<#LANHostConfig_displayIPTV_sectiondescBRTAC828#>
 			</div>
-	  
-	  <!-- IPTV & VoIP Setting -->
-	  
-		<!--###HTML_PREP_START###-->
+
 	  <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
 	  	<thead>
 			<tr>
@@ -1481,60 +1478,7 @@ function change_mr_enable(switch_stb_x){
 			</td>
 		</tr>
 		</table>
-<!--###HTML_PREP_ELSE###-->
-<!--
-[DSL-N55U][DSL-N55U-B]
-{DSL do not support unifw}
-	  <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
-	  	<thead>
-		<tr>
-            	<td colspan="2">Port</td>
-            	</tr>
-		</thead>
-		<tr id="wan_stb_x">
-		<th width="30%"><#Layer3Forwarding_x_STB_itemname#></th>
-		<td align="left">
-		    <select name="switch_stb_x" class="input_option">
-			<option value="0" <% nvram_match( "switch_stb_x", "0", "selected"); %>><#wl_securitylevel_0#></option>
-			<option value="1" <% nvram_match( "switch_stb_x", "1", "selected"); %>>LAN1</option>
-			<option value="2" <% nvram_match( "switch_stb_x", "2", "selected"); %>>LAN2</option>
-			<option value="3" <% nvram_match( "switch_stb_x", "3", "selected"); %>>LAN3</option>
-			<option value="4" <% nvram_match( "switch_stb_x", "4", "selected"); %>>LAN4</option>
-			<option value="5" <% nvram_match( "switch_stb_x", "5", "selected"); %>>LAN1 & LAN2</option>
-			<option value="6" <% nvram_match( "switch_stb_x", "6", "selected"); %>>LAN3 & LAN4</option>
-		    </select>
-		</td>
-		</tr>
-		</table>
-[DSL-AC68U]
-	<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable">
-		<thead>
-			<tr>
-				<td colspan="2">Port</td>
-			</tr>
-		</thead>
-		<tr id="wan_stb_x">
-			<th width="30%"><#Layer3Forwarding_x_STB_itemname#></th>
-			<td align="left">
-				<select name="switch_stb_x" class="input_option">
-				<option value="0" <% nvram_match( "switch_stb_x", "0", "selected"); %>><#wl_securitylevel_0#></option>
-				<option value="1" <% nvram_match( "switch_stb_x", "1", "selected"); %>>LAN1</option>
-				<option value="2" <% nvram_match( "switch_stb_x", "2", "selected"); %>>LAN2</option>
-				<option value="3" <% nvram_match( "switch_stb_x", "3", "selected"); %>>LAN3</option>
-				<option value="4" <% nvram_match( "switch_stb_x", "4", "selected"); %>>LAN4</option>
-				<option value="5" <% nvram_match( "switch_stb_x", "5", "selected"); %>>LAN1 & LAN2</option>
-				<option value="6" <% nvram_match( "switch_stb_x", "6", "selected"); %>>LAN3 & LAN4</option>
-				</select>
-				<input type="checkbox" name="dslx_rmvlan_check" id="dslx_rmvlan_check" value="" onClick="change_rmvlan();"> Remove VLAN TAG from DSL WAN</input>
-			</td>
-		</tr>
-	</table>
--->
-<!--###HTML_PREP_END###-->	  
-	  
 
-		<!-- End of IPTV & VoIP -->	  
-	  
 		  <table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3"  class="FormTable" style="margin-top:10px;">
 	  	<thead>
 		<tr>
