@@ -1,285 +1,193 @@
 #!/bin/sh
 
+# for arm384 platform
+
 export KSROOT=/koolshare
 source $KSROOT/scripts/base.sh
-
-
-#From dbus to local variable
-eval $(dbus export softcenter_installing_)
-source /koolshare/scripts/base.sh
-export PERP_BASE=/koolshare/perp
-
-#softcenter_installing_module 	#正在安装的模块
-#softcenter_installing_todo 	#希望安装的模块
-#softcenter_installing_tick 	#上次安装开始的时间
-#softcenter_installing_version 	#正在安装的版本
-#softcenter_installing_md5 	#正在安装的版本的md5值
-#softcenter_installing_tar_url 	#模块对应的下载地址
-
-#softcenter_installing_status=		#尚未安装
-#softcenter_installing_status=0		#尚未安装
-#softcenter_installing_status=1		#已安装
-#softcenter_installing_status=2		#将被安装到jffs分区...
-#softcenter_installing_status=3		#正在下载中...请耐心等待...
-#softcenter_installing_status=4		#正在安装中...
-#softcenter_installing_status=5		#安装成功！请5秒后刷新本页面！...
-#softcenter_installing_status=6		#卸载中......
-#softcenter_installing_status=7		#卸载成功！
-#softcenter_installing_status=8		#没有检测到在线版本号！
-#softcenter_installing_status=9		#正在下载更新......
-#softcenter_installing_status=10	#正在安装更新...
-#softcenter_installing_status=11	#安装更新成功，5秒后刷新本页！
-#softcenter_installing_status=12	#下载文件校验不一致！
-#softcenter_installing_status=13	#然而并没有更新！
-#softcenter_installing_status=14	#正在检查是否有更新~
-#softcenter_installing_status=15	#检测更新错误！
-#softcenter_installing_status=16	#下载错误，代码：！
-#softcenter_installing_status=17	#卸载失败！请关闭插件后重试！
-
-softcenter_home_url=$(dbus get softcenter_home_url)
-CURR_TICK=$(date +%s)
-BIN_NAME=$(basename "$0")
-BIN_NAME="${BIN_NAME%.*}"
-if [ "$ACTION" != "" ]; then
-	BIN_NAME=$ACTION
-fi
-
-if [ "$(nvram get model)" == "GT-AC5300" ] || [ "$(nvram get model)" == "GT-AX11000" ] || [ -n "$(nvram get extendno | grep koolshare)" -a "$(nvram get productid)" == "RT-AC86U" ];then
+alias echo_date='echo 【$(date +%Y年%m月%d日\ %X)】:'
+eval $(dbus export soft)
+TARGET_DIR=/tmp/upload
+MODEL=$(nvram get productid)
+if [ "$MODEL" == "GT-AC5300" ] || [ "$MODEL" == "GT-AX11000" ] || [ -n "$(nvram get extendno | grep koolshare)" -a "$(nvram get productid)" == "RT-AC86U" ];then
+	# 官改固件，骚红皮肤
 	ROG=1
 fi
 
-LOGGER() {
-#	echo $1
-	logger $1
+if [ "$(nvram get productid)" == "TUF-AX3000" ];then
+	# 官改固件，橙色皮肤
+	TUF=1
+fi
+
+clean(){
+	[ -n "$name" ] && rm -rf /tmp/$name >/dev/null 2>&1
+	[ -n "$MODULE_NAME" ] && rm -rf /tmp/$MODULE_NAME >/dev/null 2>&1
+	[ -n "$soft_name" ] && rm -rf /tmp/$soft_name >/dev/null 2>&1
+	rm -rf /tmp/*.tar.gz >/dev/null 2>&1
+	dbus remove soft_install_version
+	dbus remove soft_name
 }
 
-install_module() {
-	if [ "${softcenter_home_url}" = "" -o "${softcenter_installing_md5}" = "" -o "${softcenter_installing_version}" = "" ]; then
-		LOGGER "【软件中心】input error, something not found"
+detect_package(){
+	local TEST_WORD="$1"
+	local ILLEGAL_KEYWORDS=""
+	local KEY_MATCH=$(echo "${TEST_WORD}" | grep -Eo "$ILLEGAL_KEYWORDS")
+	
+	if [ -n "$KEY_MATCH" ]; then
+		echo_date =======================================================
+		echo_date "检测到离线安装包：${soft_name} 含非法关键词！！！"
+		echo_date "根据法律规定，koolshare软件中心将不会安装此插件！！！"
+		echo_date "删除相关文件并退出..."
+		echo_date =======================================================
+		clean
 		exit 1
 	fi
+}
 
-	if [ "${softcenter_installing_tick}" = "" ]; then
-		export softcenter_installing_tick=0
-	fi
-	LAST_TICK=$(expr ${softcenter_installing_tick} + 20)
-	if [ "${LAST_TICK}" -ge "${CURR_TICK}" -a "${softcenter_installing_module}" != "" ]; then
-		LOGGER "【软件中心】module ${softcenter_installing_module} is installing"
-		exit 2
-	fi
+install_tar(){
 
-	if [ "${softcenter_installing_todo}" = "" ]; then
-		#curr module name not found
-		LOGGER "【软件中心】module name not found"
-		exit 3
-	fi
-
-	# Just ignore the old installing_module
-	export softcenter_installing_module=${softcenter_installing_todo}
-	export softcenter_installing_tick=$(date +%s)
-	dbus set softcenter_installing_status="2"
-	sleep 1
-	dbus save softcenter_installing_
-
-	URL_SPLIT="/"
-	#OLD_MD5=$(dbus get softcenter_module_${softcenter_installing_module_md5})
-	OLD_VERSION=$(dbus get softcenter_module_${softcenter_installing_module}_version)
-	HOME_URL=$(dbus get softcenter_home_url)
-	TAR_URL=${HOME_URL}${URL_SPLIT}${softcenter_installing_tar_url}
-	FNAME=$(basename ${softcenter_installing_tar_url})
-
-	if [ "$OLD_VERSION" = "" ]; then
-		OLD_VERSION=0
-	fi
-
-	CMP=$(versioncmp ${softcenter_installing_version} ${OLD_VERSION})
-	if [ -f "/koolshare/webs/Module_${softcenter_installing_module}.sh" -o "${softcenter_installing_todo}" = "softcenter" ]; then
-		CMP="-1"
-	fi
-	if [ "$CMP" = "-1" ]; then
-
+	# do the right thing
+	detect_package "$soft_name"
+	
+	name=$(echo "$soft_name"|sed 's/.tar.gz//g'|awk -F "_" '{print $1}'|awk -F "-" '{print $1}')
+	INSTALL_SUFFIX=_install
+	VER_SUFFIX=_version
+	NAME_SUFFIX=_name
 	cd /tmp
-	rm -f ${FNAME}
-	rm -rf "/tmp/$softcenter_installing_module"
-	dbus set softcenter_installing_status="3"
-	sleep 1
-	wget -t 2 -T 20 --dns-timeout=15 --no-check-certificate -q ${TAR_URL}
-	RETURN_CODE=$?
-
-	if [ "$RETURN_CODE" != "0" ]; then
-		dbus set softcenter_installing_status="16"
-		sleep 3
-		dbus set softcenter_installing_status="0"
-		dbus set softcenter_installing_module=""
-		dbus set softcenter_installing_todo=""
-		LOGGER "【软件中心】wget ${TAR_URL} error, ${RETURN_CODE}"
-		exit ${RETURN_CODE}
-	fi
-
-	md5sum_gz=$(md5sum /tmp/${FNAME} | sed 's/ /\n/g'| sed -n 1p)
-	if [ "$md5sum_gz"x != "$softcenter_installing_md5"x ]; then
-		LOGGER "【软件中心】md5 not equal $md5sum_gz"
-		dbus set softcenter_installing_status="12"
-		rm -f ${FNAME}
-		sleep 3
-
-		dbus set softcenter_installing_status="0"
-		dbus set softcenter_installing_module=""
-		dbus set softcenter_installing_todo=""
-
-		rm -f ${FNAME}
-		rm -rf "/tmp/$softcenter_installing_module"
-		exit
-	else
-		tar -zxf ${FNAME}
-		dbus set softcenter_installing_status="4"
-
-		if [ ! -f /tmp/${softcenter_installing_module}/install.sh ]; then
-			dbus set softcenter_installing_status="0"
-			dbus set softcenter_installing_module=""
-			dbus set softcenter_installing_todo=""
-
-			#rm -f ${FNAME}
-			#rm -rf "/tmp/${softcenter_installing_module}"
-
-			LOGGER "【软件中心】package hasn't install.sh"
-			exit 5
-		fi
-
-		if [ -f /tmp/${softcenter_installing_module}/uninstall.sh ]; then
-			chmod 755 /tmp/${softcenter_installing_module}/uninstall.sh
-			mv /tmp/${softcenter_installing_module}/uninstall.sh /koolshare/scripts/uninstall_${softcenter_installing_todo}.sh
-		fi
-
-		if [ -d /tmp/${softcenter_installing_module}/GT-AC5300 -a "$ROG" == "1" ]; then
-			cp -rf /tmp/${softcenter_installing_module}/GT-AC5300/* /tmp/${softcenter_installing_module}/
-		fi
-
-		if [ -d /tmp/${softcenter_installing_module}/ROG -a "$ROG" == "1" ]; then
-			cp -rf /tmp/${softcenter_installing_module}/ROG/* /tmp/${softcenter_installing_module}/
-		fi
-
-		chmod a+x /tmp/${softcenter_installing_module}/install.sh
-		sh /tmp/${softcenter_installing_module}/install.sh
-		sleep 3
-
-		rm -f ${FNAME}
-		rm -rf "/tmp/$softcenter_installing_module"
-
-		if [ "$softcenter_installing_module" != "softcenter" ]; then
-			dbus set softcenter_module_${softcenter_installing_module}_md5=${softcenter_installing_md5}
-			dbus set softcenter_module_${softcenter_installing_module}_version=${softcenter_installing_version}
-			dbus set softcenter_module_${softcenter_installing_module}_install=1
-			dbus set ${softcenter_installing_module}_version=${softcenter_installing_version}
+	echo_date ====================== step 1 ===========================
+	echo_date 开启软件离线安装！
+	if [ -f $TARGET_DIR/$soft_name ];then
+		local _SIZE=$(ls -lh $TARGET_DIR/$soft_name|awk '{print $5}')
+		echo_date $TARGET_DIR目录下检测到上传的离线安装包$soft_name，大小：$_SIZE
+		mv /tmp/upload/$soft_name /tmp
+		echo_date 尝试解压离线安装包离线安装包
+		tar -zxvf $soft_name >/dev/null 2>&1
+		if [ "$?" == "0" ];then
+			echo_date 解压完成！
+			cd /tmp
 		else
-			dbus set softcenter_version=${softcenter_installing_version};
-			dbus set softcenter_md5=${softcenter_installing_md5}
+			echo_date 解压错误，错误代码："$?"！
+			echo_date 估计是错误或者不完整的的离线安装包！
+			echo_date 删除相关文件并退出...
+			clean
+			dbus remove "softcenter_module_$MODULE_NAME$INSTALL_SUFFIX"
+			echo_date ======================== end ============================
+			echo XU6J03M6
+			exit
 		fi
-		dbus set softcenter_installing_module=""
-		dbus set softcenter_installing_todo=""
-		dbus set softcenter_installing_status="1"
-	fi
+		
+		if [ -f /tmp/$name/install.sh ];then
+			INSTALL_SCRIPT=/tmp/$name/install.sh
+		else
+			INSTALL_SCRIPT_NU=$(find /tmp -name "install.sh"|wc -l) 2>/dev/null
+			[ "$INSTALL_SCRIPT_NU" == "1" ] && INSTALL_SCRIPT=$(find /tmp -name "install.sh") || INSTALL_SCRIPT=""
+		fi
 
+		if [ -n "$INSTALL_SCRIPT" -a -f "$INSTALL_SCRIPT" ];then
+			SCRIPT_AB_DIR=$(dirname $INSTALL_SCRIPT)
+			MODULE_NAME=${SCRIPT_AB_DIR##*/}
+
+			# do the right thing
+			detect_package "$MODULE_NAME"
+
+			if [ -f "${SCRIPT_AB_DIR}/.valid" ] && [ "$(cat ${SCRIPT_AB_DIR}/.valid)" == "arm384" ];then
+				continue
+			else
+				echo_date 你上传的离线安装包不是arm384平台的离线包！！！
+				echo_date 请上传正确的离线安装包！！！
+				echo_date 删除相关文件并退出...
+				clean
+				dbus remove "softcenter_module_$MODULE_NAME$INSTALL_SUFFIX"
+				echo_date ======================== end ============================
+				echo XU6J03M6
+				exit		
+			fi			
+			
+			echo_date 准备安装$MODULE_NAME插件！
+			echo_date 找到安装脚本！
+			chmod +x $INSTALL_SCRIPT >/dev/null 2>&1
+			echo_date 运行安装脚本...
+			echo_date ====================== step 2 ===========================
+
+			if [ -d /tmp/$MODULE_NAME/GT-AC5300 -a "$ROG" == "1" ]; then
+				cp -rf /tmp/$MODULE_NAME/GT-AC5300/* /tmp/$MODULE_NAME/
+			fi
+
+			if [ -d /tmp/$MODULE_NAME/ROG -a "$ROG" == "1" ]; then
+				echo_date "检测到ROG官改皮肤，安装中..."
+				cp -rf /tmp/$MODULE_NAME/ROG/* /tmp/$MODULE_NAME/
+			fi
+
+			if [ -d /tmp/${MODULE_NAME}/ROG -a "$TUF" == "1" ]; then
+				# 骚红变橙色
+				echo_date "检测到TUF官改皮肤，安装中..."
+				find /tmp/${MODULE_NAME}/ROG/ -name "*.asp" | xargs sed -i 's/3e030d/3e2902/g;s/91071f/92650F/g;s/680516/D0982C/g;s/cf0a2c/c58813/g;s/700618/74500b/g;s/530412/92650F/g'
+				find /tmp/${MODULE_NAME}/ROG/ -name "*.css" | xargs sed -i 's/3e030d/3e2902/g;s/91071f/92650F/g;s/680516/D0982C/g;s/cf0a2c/c58813/g;s/700618/74500b/g;s/530412/92650F/g'
+				cp -rf /tmp/${MODULE_NAME}/ROG/* /tmp/${MODULE_NAME}/
+			fi
+			
+			sleep 1
+			start-stop-daemon -S -q -x $INSTALL_SCRIPT 2>&1
+			if [ "$?" != "0" ];then
+				echo_date 因为${MODULE_NAME}插件安装失败！退出离线安装！
+				clean
+				dbus remove "softcenter_module_${MODULE_NAME}${INSTALL_SUFFIX}"
+				echo_date ======================== end ============================
+				echo XU6J03M6
+				exit
+			fi
+			echo_date ====================== step 3 ===========================
+			dbus set "softcenter_module_${MODULE_NAME}${NAME_SUFFIX}=${MODULE_NAME}"
+			dbus set "softcenter_module_${MODULE_NAME}${INSTALL_SUFFIX}=1"
+			if [ -n "$soft_install_version" ];then
+				dbus set "softcenter_module_${MODULE_NAME}${VER_SUFFIX}=$soft_install_version"
+				echo_date "从插件文件名中获取到了版本号：$soft_install_version"
+			else
+				if [ -z "$(dbus get softcenter_module_${MODULE_NAME}${VER_SUFFIX})" ];then
+					dbus set "softcenter_module_${MODULE_NAME}${VER_SUFFIX}=0.1"
+					echo_date "插件安装脚本里没有找到版本号，设置默认版本号为0.1"
+				else
+					echo_date "插件安装脚本已经设置了插件版本号为：$(dbus get softcenter_module_${MODULE_NAME}${VER_SUFFIX})"
+				fi
+			fi
+			install_pid=$(ps | grep -w install.sh | grep -v grep | awk '{print $1}')
+			i=120
+			until [ -z "$install_pid" ]
+			do
+				install_pid=$(ps | grep -w install.sh | grep -v grep | awk '{print $1}')
+				i=$(($i-1))
+				if [ "$i" -lt 1 ];then
+					echo_date "Could not load nat rules!"
+					echo_date 安装似乎出了点问题，请手动重启路由器后重新尝试...
+					echo_date 删除相关文件并退出...
+					sleep 1
+					clean
+					dbus remove "softcenter_module_${MODULE_NAME}${INSTALL_SUFFIX}"
+					echo_date ======================== end ============================
+					echo XU6J03M6
+					exit
+				fi
+				sleep 1
+			done
+			echo_date 离线包安装完成！
+			echo_date 一点点清理工作...
+			clean
+			echo_date 完成！离线安装插件成功，现在你可以退出本页面~
+		else
+			echo_date 没有找到安装脚本！
+			echo_date 删除相关文件并退出...
+			clean
+		fi
 	else
-		LOGGER "【软件中心】current version is newest version"
-		dbus set softcenter_installing_status="13"
-		sleep 3
-
-		dbus set softcenter_installing_status="0"
-		dbus set softcenter_installing_module=""
-		dbus set softcenter_installing_todo=""
+		echo_date 没有找到离线安装包！
+		echo_date 删除相关文件并退出...
+		clean
 	fi
+	clean
+	echo_date ======================== end ============================
+	echo XU6J03M6
 }
 
-uninstall_module() {
-	if [ "${softcenter_installing_tick}" = "" ]; then
-		export softcenter_installing_tick=0
-	fi
-	LAST_TICK=$(expr ${softcenter_installing_tick} + 20)
-	if [ "${LAST_TICK}" -ge "${CURR_TICK}" -a "${softcenter_installing_module}" != "" ]; then
-		LOGGER "【软件中心】module ${softcenter_installing_module} is installing"
-		exit 2
-	fi
+echo " " > /tmp/upload/soft_log.txt
+http_response "$1"
+install_tar > /tmp/upload/soft_log.txt
 
-	if [ "${softcenter_installing_todo}" = "" -o "${softcenter_installing_todo}" = "softcenter" ]; then
-		#curr module name not found
-		LOGGER "【软件中心】module name not found"
-		exit 3
-	fi
-
-	local ENABLED=$(dbus get ${softcenter_installing_todo}_enable)
-	if [ "${ENABLED}" == "1" ]; then
-		LOGGER "【软件中心】please disable ${softcenter_installing_module} then try again"
-		dbus set softcenter_installing_status="17"
-		sleep 3
-		dbus set softcenter_installing_status="0"
-		exit 4
-	fi
-
-	# Just ignore the old installing_module
-	export softcenter_installing_module=${softcenter_installing_todo}
-	export softcenter_installing_tick=$(date +%s)
-	export softcenter_installing_status="6"
-	dbus save softcenter_installing_
-
-	dbus remove softcenter_module_${softcenter_installing_module}_md5
-	dbus remove softcenter_module_${softcenter_installing_module}_version
-	dbus remove softcenter_module_${softcenter_installing_module}_install
-	dbus remove softcenter_module_${softcenter_installing_module}_description
-	dbus remove softcenter_module_${softcenter_installing_module}_name
-	dbus remove softcenter_module_${softcenter_installing_module}_title
-
-	txt=$(dbus list ${softcenter_installing_todo})
-	printf "%s\n" "$txt" |
-	while IFS= read -r line; do
-		line2="${line%=*}"
-		if [ "${line2}" != "" ]; then
-			dbus remove ${line2}
-		fi
-	done
-
-	sleep 3
-	dbus set softcenter_installing_module=""
-	dbus set softcenter_installing_status="7"
-	dbus set softcenter_installing_todo=""
-
-	#try to call uninstall script
-	if [ -f /koolshare/scripts/${softcenter_installing_todo}_uninstall.sh]; then
- 		sh /koolshare/scripts/${softcenter_installing_todo}_uninstall.sh
-	elif [ -f "/koolshare/scripts/uninstall_${softcenter_installing_todo}.sh" ]; then
-		sh /koolshare/scripts/uninstall_${softcenter_installing_todo}.sh
-	else
-		if [ -n "${softcenter_installing_todo}" ]; then
-			rm -rf /koolshare/${softcenter_installing_todo}
-			rm -rf /koolshare/bin/${softcenter_installing_todo}
-			rm -rf /koolshare/init.d/*${softcenter_installing_todo}*
-			rm -rf /koolshare/scripts/${softcenter_installing_todo}*.sh
-			rm -rf /koolshare/res/icon-${softcenter_installing_todo}.png
-			rm -rf /koolshare/webs/Module_${softcenter_installing_todo}.asp
-		fi
-	fi
-}
-
-#LOGGER $BIN_NAME
-case $2 in
-update)
-	http_response $1
-	install_module
-	;;
-install)
-	http_response $1
-	install_module
-	;;
-ks_app_install)
-	http_response $1
-	install_module
-	;;
-ks_app_remove)
-	http_response $1
-	uninstall_module
-	;;
-*)
-	http_response $1
-	install_module
-	;;
-esac
