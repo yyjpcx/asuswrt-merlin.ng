@@ -398,8 +398,11 @@ var notification = {
 		}else
 			notification.low_nvram = 0;
 
+		//jffs log
+		//var jffsusage = "<% sysinfo("jffs.usage"); %>";
+		var jffsfree = "<% sysinfo("jffs.free"); %>";
 		// Low JFFS
-		if(<% sysinfo("jffs.free"); %> < 3){
+		if(!isNaN(jffsfree) && jffsfree < 3){
 			notification.array[18] = 'noti_low_jffs';
 			notification.low_jffs = 1;
 			notification.desc[18] = "Your router is running low on free JFFS storage, which might affect its stability.<br>Review the content of the /jffs directory on your router.";
