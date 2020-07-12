@@ -664,8 +664,11 @@ function notice_show() {
 												<div>&nbsp;</div>
 												<div id="title_name" class="formfonttitle"></div>
 												<script type="text/javascript">
-													var MODEL = '<% nvram_get("odmpid"); %>' || '<% nvram_get("model"); %>';
-													$("#title_name").html("Software Center " + MODEL)
+													if (odmpid != ""){
+														$("#title_name").html("Software Center " + odmpid);
+													}else{
+														$("#title_name").html("Software Center " + productid);
+													}
 												</script>
 												<div style="margin:10px 0 10px 5px;" class="splitLine"></div>
 													<table width="100%" border="1" align="center" cellpadding="4" cellspacing="0" bordercolor="#6b8fa3" class="FormTable">
