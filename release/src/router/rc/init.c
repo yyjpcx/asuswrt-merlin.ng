@@ -9632,6 +9632,8 @@ int init_nvram2(void)
 		ether_atoe(get_2g_hwaddr(), ea);
 #ifdef RTAC1200GP
 		snprintf(hostname, sizeof(hostname), "%s-%02X%02X", "RT-AC1200G", ea[4], ea[5]);
+#elif defined(RTK3)
+		snprintf(hostname, sizeof(hostname), "%s-%02X%02X", "RT-K3", ea[4], ea[5]);
 #else
 		snprintf(hostname, sizeof(hostname), "%s-%02X%02X", get_productid(), ea[4], ea[5]);
 #endif
