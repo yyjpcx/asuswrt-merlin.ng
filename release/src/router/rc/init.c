@@ -9087,6 +9087,8 @@ int init_nvram2(void)
 
 #ifdef RTAC1200GP
 	sprintf(friendly_name, "%s-%02X%02X", "RT-AC1200G", mac_binary[4], mac_binary[5]);
+#elif defined(RTK3)
+	sprintf(friendly_name, "%s-%02X%02X", "RT-K3", mac_binary[4], mac_binary[5]);
 #else
 	sprintf(friendly_name, "%s-%02X%02X", get_productid(), mac_binary[4], mac_binary[5]);
 #endif
