@@ -717,6 +717,7 @@ void create_passwd(void)
 #ifdef RTCONFIG_NVRAM_ENCRYPT
 	char dec_passwd[64];
 #endif
+	char passwd_buf[128] = {0};
 
 #ifdef RTCONFIG_SAMBASRV	//!!TB
 	char *smbd_user;
@@ -747,7 +748,8 @@ void create_passwd(void)
 #ifdef RTCONFIG_NVRAM_ENCRYPT
 	else{
 		memset(dec_passwd, 0, sizeof(dec_passwd));
-		pw_dec(p, dec_passwd, sizeof(dec_passwd));
+		strlcpy(passwd_buf, nvram_safe_get("http_passwd"), sizeof(passwd_buf));
+		pw_dec(passwd_buf, dec_passwd, sizeof(dec_passwd));
 		p = dec_passwd;
 	}
 #endif
@@ -4962,8 +4964,6 @@ stop_skipd(void)
 void
 start_httpd(void)
 {
-	char tmp[100];
-
 	char *httpd_argv[] = { "httpd",
 		NULL, NULL,	/* -i ifname */
 		NULL, NULL,	/* -p port */
@@ -5006,31 +5006,18 @@ start_httpd(void)
 	}
 
 #ifdef RTCONFIG_HTTPS
-	snprintf(tmp, sizeof(tmp), "cat %s %s > %s", HTTPD_CERT, HTTPD_KEY, LIGHTTPD_CERTKEY);
 #ifdef RTCONFIG_LETSENCRYPT
 	if(nvram_match("le_enable", "1")) {
 		if(!is_le_cert(HTTPD_CERT) || !cert_key_match(HTTPD_CERT, HTTPD_KEY)) {
 			cp_le_cert(LE_FULLCHAIN, HTTPD_CERT);
 			cp_le_cert(LE_KEY, HTTPD_KEY);
-			system(tmp);
 		}
 	}
-	else if(nvram_match("le_enable", "2")) {
-                unlink(HTTPD_CERT);
-                unlink(HTTPD_KEY);
+	else if(nvram_match("le_enable", "2")){
                 if(f_exists(UPLOAD_CERT) && f_exists(UPLOAD_KEY)) {
                         eval("cp", UPLOAD_CERT, HTTPD_CERT);
                         eval("cp", UPLOAD_KEY, HTTPD_KEY);
-                        eval("cp", UPLOAD_CERT, "/etc/cert.crt");
-			system(tmp);
 		}
-	}
-#else
-	if(f_exists(UPLOAD_CERT) && f_exists(UPLOAD_KEY)){
-		eval("cp", UPLOAD_CERT, HTTPD_CERT);
-		eval("cp", UPLOAD_KEY, HTTPD_KEY);
-		eval("cp", UPLOAD_CERT, "/etc/cert.crt");
-		system(tmp);
 	}
 #endif
 
